@@ -26,6 +26,7 @@ def echo(update: Update, context: CallbackContext, profits) -> None:
     # update.message.reply_text(f'You said: {update.message.text}')
     # update.message.chat('ccol')
 
+
 class get_coin_profit:
     def __init__(self):
         self.last_ticker = self.get_usdt_ticker()
