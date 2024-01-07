@@ -131,9 +131,11 @@ def main2():
     keep_symbol = ['BTCUSDT', 'ETHUSDT', 'ORDIUSDT', 'BONKUSDT', 'BSWUSDT', 
                    'MLNUSDT', 'DCRUSDT', 'OPUSDT', 'ASTRUSDT', 'NFPUSDT', 'SKLUSDT']
     # keep_symbol = ['OPUSDT', 'BTCUSDT']
+    keep_symbol = None
     for idx, coin in enumerate(ticker_prices):
-        if coin['symbol'] not in keep_symbol:
-            continue
+        if keep_symbol is not None:
+            if coin['symbol'] not in keep_symbol:
+                continue
         if idx > max_num_coin-1:
             break
         symbol = coin['symbol']
