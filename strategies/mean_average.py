@@ -2,7 +2,7 @@ from pathlib import Path
 
 import numpy as np
 
-from data_process.data_structure import CoinPriceInfo
+from data_process.data_structure import BaseCoinMeta
 
 
 class Strategy:
@@ -13,7 +13,7 @@ class Strategy:
         self.price_rising_rate = price_rising_rate
         self.achieve_count = 0
 
-    def run(self, coin_data: CoinPriceInfo):
+    def run(self, coin_data: BaseCoinMeta):
         ma_data_pool, gap_rate_pool, grow_rate_pool, signal_count, count_threshold = self.extract_data(coin_data)
         ma_singal, signal_count = self.logic(ma_data_pool, gap_rate_pool, grow_rate_pool, signal_count, count_threshold)
         self.put_data(coin_data, signal_count, ma_singal)
@@ -30,9 +30,8 @@ class Strategy:
             signal_count = 0
         return ma_singal, signal_count
 
-    def extract_data(self, coin_data: CoinPriceInfo):
-        all_mean_average_data = coin_data.mean_average_data()
-        return all_mean_average_data
+    def extract_data(self, coin_data: BaseCoinMeta):
+        pass
 
     def put_data(self, coin_data, signal_count, ma_singal):
         pass
