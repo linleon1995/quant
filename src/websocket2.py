@@ -2,11 +2,12 @@ import json
 import asyncio
 import websockets
 from datetime import datetime
+import time
 
 from binance_api import get_usdt_ticker
 from strategies import mean_average, peak
-from src.data import CoinData
-from src import Telegram_bot
+from data_process.data_structure import MAMeta
+import Telegram_bot
 
 all_symbols = {}
 
@@ -25,12 +26,21 @@ async def subscribe_to_klines(uri, symbols, id, coin_meta_pool, strategy_pool):
             response_data = json.loads(response)
             
             # Get coin data
+            if response_data.get('result', True) is None:
+                time.sleep(1e-4)
+                continue
             symbol = response_data['s']
             if coin_meta_pool.get(symbol, None) is None:
-                coin_meta_pool[symbol] = CoinData()
+                coin_meta_pool[symbol] = MAMeta(
+                    symbol, maxlen=100, ma_range_list=[1, 5, 10])
             close_price = float(response_data['k']['c'])
-            coin_meta_pool[symbol].put_tick()
+            coin_meta_pool[symbol].put_tick(close_price)
+            time.sleep(60)
+            
+            if not coin_meta_pool[symbol].isValid:
+                continue
 
+            # print(coin_meta_pool)
             for strategy in strategy_pool:
                 trade_singal = strategy.run(coin_meta_pool[symbol])
                 if trade_singal:
@@ -52,7 +62,12 @@ async def main():
     # tasks = [subscribe_to_klines(uri, [symbol], id) for id, symbol in enumerate(symbols, 1)]
     tasks = []
     coin_meta_pool = {}
-    strategy_pool = [mean_average.Strategy()]
+    ma_strategy = mean_average.Strategy(
+        ma_gap_rates=[1.001, 1.001],
+        ma_grow_rates=[1, 1, 1],
+        count_threshold=5
+    )
+    strategy_pool = [ma_strategy]
     for idx in range(0, len(symbols), stream_per_task):
         tasks.append(subscribe_to_klines(uri, symbols[idx:idx+stream_per_task], idx, coin_meta_pool, strategy_pool))
         
