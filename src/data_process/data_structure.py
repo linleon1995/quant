@@ -1,6 +1,7 @@
 
 from dataclasses import dataclass
 from collections import deque
+import datetime
 
 
 @dataclass
@@ -24,14 +25,20 @@ class MAMeta:
     def __init__(self, symbol, maxlen, ma_range_list):
         self.symbol = symbol
         self.ticks = deque(maxlen=maxlen)
+        self.time = deque(maxlen=maxlen)
         self.ma_data_pool = {}
         self.signal_count = 0
         self.ma_ranges = ma_range_list
         for ma_range in ma_range_list:
             self.ma_data_pool[ma_range] = deque(maxlen=maxlen)
 
-    def put_tick(self, tick):
+    def put_tick(self, tick, unix_time):
         self.ticks.append(tick)
+        self.time.append(datetime.datetime.fromtimestamp(unix_time/1000))
+        # TODO:
+        self.put_ma_data()
+        
+    def put_ma_data(self):
         cur_ticks_len = len(self.ticks)
         for ma_range in self.ma_ranges:
             if cur_ticks_len >= ma_range and cur_ticks_len > 1:
