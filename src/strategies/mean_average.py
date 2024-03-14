@@ -41,7 +41,7 @@ class Strategy:
         isNearMARises = []
         last_ma = ma_data_pool[0][-1]
         for ma_data, grow_rate in zip(ma_data_pool[1:], gap_rate_pool):
-            if ma_data[-1] > last_ma*grow_rate:
+            if ma_data[-1] <= last_ma*grow_rate:
                 isNearMARises.append(True)
             else:
                 return False
