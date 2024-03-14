@@ -28,3 +28,4 @@ def draw(symbol, timestamps, ticks, save_path):
     # Display the plot
     fig.tight_layout()
     fig.savefig(save_path)
+    plt.close(fig)
