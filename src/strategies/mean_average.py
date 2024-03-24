@@ -2,7 +2,7 @@ from pathlib import Path
 
 import numpy as np
 
-from data_process.data_structure import BaseCoinMeta, MAMeta
+from src.data_process.data_structure import BaseCoinMeta, MAMeta
 
 
 class Strategy:

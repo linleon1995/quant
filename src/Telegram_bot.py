@@ -3,10 +3,11 @@ import requests
 from datetime import datetime
 
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+from telegram.ext import Updater, CommandHandler, MessageHandler, filters, CallbackContext
+from telegram.ext import filters
 from pprint import pprint
 
-from binance_api import get_binance_ticker_price
+from src.binance_api import get_binance_ticker_price
 
 # Replace 'YOUR_TOKEN' with the token you obtained from BotFather
 TOKEN = '6041794044:AAHdd2S1CSR9CVhr-TrduVETEUJr3uxbqxU'
@@ -68,9 +69,9 @@ def main(ProfitGetter) -> None:
         if idx >= n:
             break
         best_profits.append(f'{symbol} -> {profit*100:.2f} %')
-    print(Filters.text)
+    print(filters.text)
     print(best_profits)
-    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
+    dispatcher.add_handler(MessageHandler(filters.text & ~filters.command, echo))
 
     # Start the Bot
     updater.start_polling()
