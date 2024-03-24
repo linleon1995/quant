@@ -1,3 +1,4 @@
 telegram
 numpy
 python-telegram-bot
+websockets
