@@ -4,7 +4,33 @@ import pandas as pd
 import arcticdb as adb
 
 class ArcticDBOperator:
-    pass
+    def __init__(self, url, lib_name):
+        self.url = url
+        self.ac = adb.Arctic(url)
+        lib_list = self.ac.list_libraries()
+        self.lib_name = lib_name
+        if self.lib_name not in lib_list:
+            self.ac.create_library(lib_name)
+
+    def write(self, data_name, data):
+        lib = self.ac[self.lib_name]
+        lib.write(data_name, data)
+
+    def update(self, data_name, data):
+        lib = self.ac[self.lib_name]
+        lib.update(data_name, data)
+
+    def add(self, data_name, data):
+        lib = self.ac[self.lib_name]
+        if lib.has_symbol(data_name):
+            lib.update(symbol=data_name, data=data)
+        else:
+            lib.write(symbol=data_name, data=data)
+
+    def read(self, data_name, date_range=None):
+        lib = self.ac[self.lib_name]
+        data = lib.read(data_name, date_range=date_range)
+        return data
 
 
 def get_data():
