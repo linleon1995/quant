@@ -12,6 +12,26 @@ import matplotlib.dates as mdates
 import numpy as np
 
 
+def get_binance_klines():
+    url = 'https://api.binance.com/api/v3/klines'  # Replace 'https://api.example.com' with the actual API URL
+    params = {
+        'symbol': 'BTCUSDT',
+        'interval': '1m',
+        'startTime': 1710832400000,  # Provide the start time if needed
+        'endTime': 1710839400000,    # Provide the end time if needed
+        'timeZone': '8',    # Optional, default is UTC
+        'limit': 1000       # Example limit, adjust as needed
+    }
+
+    response = requests.get(url, params=params)
+
+    if response.status_code == 200:
+        data = response.json()
+        print(data)
+    else:
+        print("Error:", response.status_code)
+
+
 def get_binance_ticker_price(symbol=None, symbols=None):
     if symbols is not None:
         url = f'https://api.binance.com/api/v3/ticker/price?symbols={symbols}'
@@ -77,3 +97,7 @@ def get_symbols_string(symbols: list, maxlen, max_num_coins, exclude_keys=None) 
         symbol_str: str = f'[{symbol_str}]'
         symbol_groups.append(symbol_str)
     return symbol_groups
+
+
+if __name__ == '__main__':
+    get_binance_klines()
