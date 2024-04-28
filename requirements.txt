@@ -6,3 +6,6 @@ arcticdb
 pandas
 pytest
 matplotlib
+pprint
+requests
+scipy
