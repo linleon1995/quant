@@ -4,7 +4,7 @@ import websockets
 from datetime import datetime
 import time
 
-from binance_api import get_usdt_ticker
+from src.binance_api import BinanceAPI
 from strategies import mean_average, peak
 from data_process.data_structure import MAMeta
 import Telegram_bot
@@ -78,7 +78,8 @@ async def main():
     uri = "wss://stream.binance.com:9443/ws"
     stream_per_task = 10
 
-    ticker_prices = get_usdt_ticker(bridge='USDT')
+    binance_api = BinanceAPI()
+    ticker_prices = binance_api.get_usdt_ticker(bridge='USDT')
     symbols = [f"{coin['symbol'].lower()}@kline_1m" for idx, coin in enumerate(ticker_prices)]
     total_symbols = [coin['symbol'] for idx, coin in enumerate(ticker_prices)]
     # symbols = ['idexusdt@kline_1m', 'minausdt@kline_1m', 'ardrusdt@kline_1m', 'nbtusdt@kline_1m', 'fidausdt@kline_1m', 'sysusdt@kline_1m']

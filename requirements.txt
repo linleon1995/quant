@@ -2,3 +2,10 @@ telegram
 numpy
 python-telegram-bot
 websockets
+arcticdb
+pandas
+pytest
+matplotlib
+pprint
+requests
+scipy
