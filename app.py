@@ -5,10 +5,10 @@ from datetime import datetime
 import time
 
 from src.binance_api import BinanceAPI
-from strategies import mean_average, peak
-from data_process.data_structure import MAMeta
-import Telegram_bot
-from utils import draw   
+from src.strategies import mean_average, peak
+from src.data_process.data_structure import MAMeta
+from src import Telegram_bot
+from src.utils import draw   
 import traceback
 
 all_symbols = {}

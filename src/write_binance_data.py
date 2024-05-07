@@ -1,12 +1,11 @@
 import time
 from datetime import datetime, timedelta
-import sys
-print(sys.path)
 
 import pandas as pd
 
-from binance_api import BinanceAPI
-from create_backtest_database import ArcticDBOperator
+from src.binance_api import BinanceAPI
+from src.create_backtest_database import ArcticDBOperator
+
 
 KLINES_COLUMN = [
     'open_time',
