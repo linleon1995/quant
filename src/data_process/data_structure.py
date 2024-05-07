@@ -34,7 +34,11 @@ class MAMeta:
 
     def put_tick(self, tick, unix_time):
         self.ticks.append(tick)
-        self.time.append(datetime.datetime.fromtimestamp(unix_time/1000))
+        if isinstance(unix_time, int):
+            self.time.append(datetime.datetime.fromtimestamp(unix_time/1000))
+        elif isinstance(unix_time, datetime.datetime):
+            self.time.append(unix_time)
+
         # TODO:
         self.put_ma_data()
         
