@@ -1,6 +1,6 @@
 from statemachine import StateMachine, State
 
-from src.data_process.data_structure import MAMeta
+from src.data_process.data_structure import GeneralTickData
 
 
 # Keep Strategy stateless and make sure StrategyExecuter taking good care of it.
@@ -42,7 +42,7 @@ class TestStateMachine(StateMachine):
     )
     run = steady | rampup | buy | sell
 
-    def __init__(self, data_queue: MAMeta):
+    def __init__(self, data_queue: GeneralTickData):
         self.data_queue = data_queue
         super(TestStateMachine, self).__init__()
         # self.allow_event_without_transition = True
@@ -52,6 +52,7 @@ class TestStateMachine(StateMachine):
         self.data_queue.put_tick(tick=price, unix_time=timestamp)
         self.run()
     
+    # TODO: std, time range to decide, consider Bollinger Bands
     def price_stable(self):
         return len(self.data_queue.ticks) > 2
     

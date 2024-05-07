@@ -21,18 +21,26 @@ class CoinData:
     data_pool: dict
 
 
-class MAMeta:
-    def __init__(self, symbol, maxlen, ma_range_list):
+class GeneralTickData:
+    def __init__(self, symbol, maxlen, mean_average_spans):
+        max_time_span = max(mean_average_spans)
+        if maxlen < max_time_span:
+            maxlen = max(maxlen, max_time_span)
+            print(f'Change the queue max length from {maxlen} to {max_time_span} to prevent caculation error.')
+        self.maxlen = maxlen
         self.symbol = symbol
-        self.ticks = deque(maxlen=maxlen)
-        self.time = deque(maxlen=maxlen)
-        self.ma_data_pool = {}
+        self.ticks = deque(maxlen=self.maxlen)
+        self.time = deque(maxlen=self.maxlen)
+        self.mean_average_data_pool = {}
         self.signal_count = 0
-        self.ma_ranges = ma_range_list
-        for ma_range in ma_range_list:
-            self.ma_data_pool[ma_range] = deque(maxlen=maxlen)
+        self.mean_average_spans = mean_average_spans
+        for mean_average_span in mean_average_spans:
+            self.mean_average_data_pool[mean_average_span] = deque(maxlen=self.maxlen)
 
-    def put_tick(self, tick, unix_time):
+    def put_tick(self, tick: float, unix_time):
+        # TODO: if no time send in, use datetime.now() directly
+        # TODO: complete the testing for different time format
+        # TODO: consider get a complex tick (dataframe, class, numpy.array) or simple price (float)
         self.ticks.append(tick)
         if isinstance(unix_time, int):
             self.time.append(datetime.datetime.fromtimestamp(unix_time/1000))
@@ -44,13 +52,13 @@ class MAMeta:
         
     def put_ma_data(self):
         cur_ticks_len = len(self.ticks)
-        for ma_range in self.ma_ranges:
+        for ma_range in self.mean_average_spans:
             if cur_ticks_len >= ma_range and cur_ticks_len > 1:
                 start = cur_ticks_len - ma_range
                 ma_range_data = list(self.ticks)[start:]
                 mean_average = sum(ma_range_data) / len(ma_range_data)
-                self.ma_data_pool[ma_range].append(mean_average)
+                self.mean_average_data_pool[ma_range].append(mean_average)
 
     @property
     def isValid(self):
-        return len(self.ticks) >= max(self.ma_ranges)
+        return len(self.ticks) >= max(self.mean_average_spans)

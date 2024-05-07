@@ -6,7 +6,7 @@ import time
 
 from src.binance_api import BinanceAPI
 from src.strategies import mean_average, peak
-from src.data_process.data_structure import MAMeta
+from src.data_process.data_structure import GeneralTickData
 from src import Telegram_bot
 from src.utils import draw   
 import traceback
@@ -45,8 +45,8 @@ async def subscribe_to_klines(websocket, coin_meta_pool, strategy_pool):
             continue
         symbol = response_data['s']
         if coin_meta_pool.get(symbol, None) is None:
-            coin_meta_pool[symbol] = MAMeta(
-                symbol, maxlen=100, ma_range_list=[7, 25, 99])
+            coin_meta_pool[symbol] = GeneralTickData(
+                symbol, maxlen=100, mean_average_spans=[7, 25, 99])
         close_price = float(response_data['k']['c'])
         
         if all_symbols.get(symbol, '') != response_data['k']['T']:
