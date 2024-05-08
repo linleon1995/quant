@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from src.create_backtest_database import ArcticDBOperator
-from src.strategies import mean_average, base_strategy
+from src.strategies import base_strategy, moving_average
 
 
 # TODO: 假設前提為無資金假設，所有的交易都可以被完成，考慮這種情況的策略表現

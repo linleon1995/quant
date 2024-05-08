@@ -14,7 +14,7 @@ class Strategy:
 
     def run(self, coin_data: GeneralTickData):
         # TODO:
-        ma_data_pool = [data for data in list(coin_data.mean_average_data_pool.values())]
+        ma_data_pool = [data for data in list(coin_data.moving_average_data_pool.values())]
         signal_count = coin_data.signal_count
         ma_singal = False
         if self.isNearMAGreater(ma_data_pool, self.ma_gap_rates):

@@ -5,7 +5,7 @@ from datetime import datetime
 import time
 
 from src.binance_api import BinanceAPI
-from src.strategies import mean_average, peak
+from src.strategies import moving_average, peak
 from src.data_process.data_structure import GeneralTickData
 from src import Telegram_bot
 from src.utils import draw   
@@ -46,7 +46,7 @@ async def subscribe_to_klines(websocket, coin_meta_pool, strategy_pool):
         symbol = response_data['s']
         if coin_meta_pool.get(symbol, None) is None:
             coin_meta_pool[symbol] = GeneralTickData(
-                symbol, maxlen=100, mean_average_spans=[7, 25, 99])
+                symbol, maxlen=100, moving_average_spans=[7, 25, 99])
         close_price = float(response_data['k']['c'])
         
         if all_symbols.get(symbol, '') != response_data['k']['T']:
@@ -91,7 +91,7 @@ async def main():
     # tasks = [subscribe_to_klines(uri, [symbol], id) for id, symbol in enumerate(symbols, 1)]
     tasks = []
     coin_meta_pool = {}
-    ma_strategy = mean_average.Strategy(
+    ma_strategy = moving_average.Strategy(
         ma_gap_rates=[1.008, 1.008],
         ma_grow_rates=[1.0005, 1.0005, 1.0005],
         count_threshold=5
