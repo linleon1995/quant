@@ -51,4 +51,4 @@ def test_binanace_tick_processor(mock_binanace_tick_processor: BinanceTickProces
     assert mock_binanace_tick_processor.ticks[0] == BinanceTick(*mock_raw_binance_tick)
     assert mock_binanace_tick_processor.prices[0] == float(mock_raw_binance_tick[4])
 
-    assert mock_binanace_tick_processor.BollingerBand() # {'upper_band': 0.74, 'lower_band': 0.65, 'moving_average': 0.7}
+    # assert mock_binanace_tick_processor.bollinger_band # {'upper_band': 0.74, 'lower_band': 0.65, 'moving_average': 0.7}

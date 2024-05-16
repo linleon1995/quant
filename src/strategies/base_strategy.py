@@ -22,6 +22,7 @@ class TestStateMachine(StateMachine):
     s1 = State()
     s2 = State()
     s3 = State()
+    s4 = State()
 
     steady = (
         s0.to(s1, cond='price_stable')
@@ -36,14 +37,19 @@ class TestStateMachine(StateMachine):
         s2.to(s3, cond='buy_complete')
         | s2.to(s2, unless='buy_complete')
     )
-    sell = (
+    break_last_low = (
         s3.to(s0, cond='sell_complete')
         | s3.to(s3, unless='sell_complete')
     )
-    run = steady | rampup | buy | sell
+    sell = (
+        s4.to(s0, cond='sell_complete')
+        | s4.to(s4, unless='sell_complete')
+    )
+    run = steady | rampup | buy | break_last_low | sell
 
     def __init__(self, data_queue: GeneralTickData):
         self.data_queue = data_queue
+        self.stable_count = 0
         super(TestStateMachine, self).__init__()
         # self.allow_event_without_transition = True
 
@@ -52,15 +58,38 @@ class TestStateMachine(StateMachine):
         self.data_queue.put_tick(tick=price, unix_time=timestamp)
         self.run()
     
+    def receive_trade_response(self, trade_response):
+        if trade_response.result == 'buy success':
+            self.buy_success = True
+        elif trade_response.result == 'sell success':
+            self.sell_success = True
+        else:
+            raise ValueError('Invalid trade response.')
+
     # TODO: std, time range to decide, consider Bollinger Bands
-    def price_stable(self):
-        return len(self.data_queue.ticks) > 2
+    def price_stable(self): 
+        latest_price = self.data_queue.latest_price
+        upper_bound = self.data_queue.bollinger_band.upper_bound
+        lower_bound = self.data_queue.bollinger_band.lower_bound
+        if latest_price < upper_bound and upper_bound > lower_bound:
+            self.stable_count += 1
+        else:
+            self.stable_count = 0
+        if self.stable_count > 120:
+            return True
+        else:
+            return False
     
     def price_rising(self):
-        return len(self.data_queue.ticks) == 4
+        if self.data_queue.slope > 0.1:
+            return True
+        else:
+            return False
     
     def buy_complete(self):
-        return len(self.data_queue.ticks) == 5
+        self.buy_success = False
+        return True
     
     def sell_complete(self):
-        return len(self.data_queue.ticks) == 6
+        self.sell_success = False
+        return True
