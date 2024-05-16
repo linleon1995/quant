@@ -1,17 +1,7 @@
 from typing import List
 
 import requests
-from collections import deque
-import statistics
-import time
-from datetime import datetime
 
-from pprint import pprint
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-import numpy as np
-import requests
-from typing import List
 
 class BinanceAPI:
     def __init__(self, base_url='https://api.binance.com'):

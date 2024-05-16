@@ -1,34 +1,21 @@
 import time
 from datetime import datetime, timedelta
-import sys
-print(sys.path)
+from dataclasses import fields
 
 import pandas as pd
 
-from binance_api import BinanceAPI
-from create_backtest_database import ArcticDBOperator
+from src.binance_api import BinanceAPI
+from src.create_backtest_database import ArcticDBOperator
+from src.data_process.data_structure import BinanceTick
 
-KLINES_COLUMN = [
-    'open_time',
-    'open_price',
-    'high_price',
-    'low_price',
-    'close_price',
-    'volume',
-    'close_time',
-    'quote_asset_volume',
-    'number_of_trades',
-    'taker_buy_base_asset_volume',
-    'taker_buy_quote_asset_volume',
-    'unused_field'
-]
 
 
 # TODO: functional format data
 # TODO: functional time change
 def format_kline_data(data):
     if data is not None or len(data) != 0:
-        data = pd.DataFrame(data, columns=KLINES_COLUMN)
+        tick_fields = [field.name for field in fields(BinanceTick)]
+        data = pd.DataFrame(data, columns=tick_fields)
         start_timestamp_ms = data.iloc[0]['open_time']
         start_timestamp_sec = start_timestamp_ms / 1000
         start_time = pd.to_datetime(start_timestamp_sec, unit='s')
