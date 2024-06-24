@@ -9,3 +9,4 @@ matplotlib
 pprintpp
 requests
 scipy
+ipython
