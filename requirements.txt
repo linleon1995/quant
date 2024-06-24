@@ -10,3 +10,4 @@ pprintpp
 requests
 scipy
 ipython
+statemachine
