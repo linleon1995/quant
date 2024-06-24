@@ -2,7 +2,7 @@ from pathlib import Path
 
 import numpy as np
 
-from data_process.data_structure import BaseCoinMeta, MAMeta
+from data_process.data_structure import BaseCoinMeta, GeneralTickData
 
 
 class Strategy:
@@ -12,9 +12,9 @@ class Strategy:
         self.ma_grow_rates = ma_grow_rates
         self.count_threshold = count_threshold
 
-    def run(self, coin_data: MAMeta):
+    def run(self, coin_data: GeneralTickData):
         # TODO:
-        ma_data_pool = [data for data in list(coin_data.ma_data_pool.values())]
+        ma_data_pool = [data for data in list(coin_data.moving_average_data_pool.values())]
         signal_count = coin_data.signal_count
         ma_singal = False
         if self.isNearMAGreater(ma_data_pool, self.ma_gap_rates):
