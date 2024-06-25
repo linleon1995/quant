@@ -27,11 +27,11 @@ class ActionStatus:
 
     
 @dataclass
-class TradeData:
+class TradeRequest:
     action: str
     number: float
-    altcoin_name: str
-    altcoin_price: float
+    symbol: str
+    price: float
     bridgecoin_name: str = 'USDT'
     bridgecoin_price: float = 1
 
@@ -98,11 +98,11 @@ class BaseWallet:
         else:
             return 0.0
         
-    def add_trade(self, trade_signal: TradeData):
+    def add_trade(self, trade_signal: TradeRequest):
         if trade_signal.action == 'buy':
-            if self.asset.check_balance(symbol=trade_signal.bridgecoin_name, number=trade_signal.altcoin_price * trade_signal.number):
-                self.asset.withdraw(Coin(symbol=trade_signal.bridgecoin_name, number=trade_signal.altcoin_price * trade_signal.number))
-                coin = Coin(symbol=trade_signal.altcoin_name, number=trade_signal.number)
+            if self.asset.check_balance(symbol=trade_signal.bridgecoin_name, number=trade_signal.price * trade_signal.number):
+                self.asset.withdraw(Coin(symbol=trade_signal.bridgecoin_name, number=trade_signal.price * trade_signal.number))
+                coin = Coin(symbol=trade_signal.symbol, number=trade_signal.number)
                 try:
                     self.asset.deposit(coin)
                     return Response(status=ActionStatus.success)
@@ -111,9 +111,9 @@ class BaseWallet:
             else:
                 return Response(status=ActionStatus.fail)
         elif trade_signal.action == 'sell':
-            if self.asset.check_balance(symbol=trade_signal.altcoin_name, number=trade_signal.number):
-                self.asset.withdraw(Coin(symbol=trade_signal.altcoin_name, number=trade_signal.number))
-                coin = Coin(symbol=trade_signal.bridgecoin_name, number=trade_signal.altcoin_price * trade_signal.number)
+            if self.asset.check_balance(symbol=trade_signal.symbol, number=trade_signal.number):
+                self.asset.withdraw(Coin(symbol=trade_signal.symbol, number=trade_signal.number))
+                coin = Coin(symbol=trade_signal.bridgecoin_name, number=trade_signal.price * trade_signal.number)
                 try:
                     self.asset.deposit(coin)
                     return Response(status=ActionStatus.success)
