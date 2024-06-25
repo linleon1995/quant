@@ -3,7 +3,7 @@ import sys
 p = sys.path
 print(p)
 p.append('/home/linleon1995/project/quant/')
-from src.wallet import BaseWallet, Coin, TradeData, Asset
+from src.wallet import BaseWallet, Coin, TradeRequest, Asset
 
 @pytest.fixture
 def mock_wallet():
@@ -35,7 +35,7 @@ def test_trade(mock_wallet):
     response = mock_wallet.deposit(eth)
     
     # success
-    trade_signal = TradeData(altcoin_name='ETH', altcoin_price=3000, 
+    trade_signal = TradeRequest(symbol='ETH', price=3000, 
                              bridgecoin_name='USDT', bridgecoin_price=1, 
                              action='buy', number=1.0)
     trade_response = mock_wallet.add_trade(trade_signal)
@@ -44,7 +44,7 @@ def test_trade(mock_wallet):
     assert mock_wallet.get_coin_balance('ETH') == 3
     
     # fail, not enough money
-    trade_signal = TradeData(altcoin_name='BTC', altcoin_price=70000, 
+    trade_signal = TradeRequest(symbol='BTC', price=70000, 
                              bridgecoin_name='USDT', bridgecoin_price=1, 
                              action='sell', number=1.0)
     trade_response = mock_wallet.add_trade(trade_signal)
@@ -53,7 +53,7 @@ def test_trade(mock_wallet):
     assert mock_wallet.get_coin_balance('ETH') == 3
 
     # fail, no coin
-    trade_signal = TradeData(altcoin_name='BNB', altcoin_price=3000, 
+    trade_signal = TradeRequest(symbol='BNB', price=3000, 
                              bridgecoin_name='USDT', bridgecoin_price=1, 
                              action='sell', number=4.0)
     trade_response = mock_wallet.add_trade(trade_signal)
@@ -63,7 +63,7 @@ def test_trade(mock_wallet):
     assert mock_wallet.get_coin_balance('BNB') == 0
 
     # edge case
-    trade_signal = TradeData(altcoin_name='ETH', altcoin_price=4000,
+    trade_signal = TradeRequest(symbol='ETH', price=4000,
                              bridgecoin_name='USDT', bridgecoin_price=1, 
                              action='sell', number=3.0)
     trade_response = mock_wallet.add_trade(trade_signal)
