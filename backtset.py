@@ -12,7 +12,7 @@ from src.wallet import BaseWallet, Coin
 def main():
     symbol = 'WIFUSDT'
 
-    arctic_ops = ArcticDBOperator(url="lmdb://eval", lib_name='Binance')
+    arctic_ops = ArcticDBOperator(url="lmdb://database", lib_name='Binance')
     DBobject = arctic_ops.read(data_name=symbol, date_range=(datetime(2024, 1, 1, 0, 0), datetime(2024, 4, 15, 16, 17)))
     evaluator = Evaluator()
     # strategy = base_strategy.TestStateMachine(
