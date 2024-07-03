@@ -9,5 +9,6 @@ matplotlib
 pprintpp
 requests
 scipy
+tqdm
 ipython
 python-statemachine

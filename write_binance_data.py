@@ -29,7 +29,7 @@ def format_kline_data(data):
 
 def write_coin_kline_into_database(symbol, start_time, end_time):
     binance_api = BinanceAPI()
-    arctic_ops = ArcticDBOperator(url="lmdb:///Leon/SideProject/quant", lib_name='Binance')
+    arctic_ops = ArcticDBOperator(url="lmdb://database", lib_name='Binance')
 
     old_time = datetime(1980, 1, 1)
     start_time_in_day = int(old_time.timestamp()) * 1000
@@ -63,9 +63,9 @@ def main():
     coin_list = [
         'ATAUSDT', 'PEPEUSDT', 'ETHUSDT', 'BTCUSDT', 'BNBUSDT'
     ]
-    # coin_list = [
-    #     'WIFUSDT', 'BONKUSDT'
-    # ]
+    coin_list = [
+        'WIFUSDT', 'BONKUSDT'
+    ]
     total_time = {}
     for symbol in coin_list:
         st = time.time()
@@ -73,7 +73,7 @@ def main():
         elapsed_time = time.time() - st
         total_time[symbol] = elapsed_time
 
-    arctic_ops = ArcticDBOperator(url="lmdb:///Leon/SideProject/quant", lib_name='Binance')
+    arctic_ops = ArcticDBOperator(url="lmdb://database", lib_name='Binance')
     aa = arctic_ops.read(data_name='WIFUSDT', date_range=(datetime(2024, 4, 1, 0, 0), datetime(2024, 4, 15, 16, 17)))
     print(aa.data)
     print(total_time)
