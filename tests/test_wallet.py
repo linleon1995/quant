@@ -1,8 +1,4 @@
 import pytest
-import sys
-p = sys.path
-print(p)
-p.append('/home/linleon1995/project/quant/')
 from src.wallet import BaseWallet, Coin, TradeRequest, Asset
 
 @pytest.fixture

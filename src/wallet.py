@@ -8,9 +8,11 @@ from datetime import datetime
 class Coin:
     symbol: str
     number: float = 0.0
+    avg_price: float = 0.0
 
     def __add__(self, coin: 'Coin') -> 'Coin':
-        self.number = self.number + coin.number
+        self.number += coin.number
+        self.avg_price = (self.number * self.avg_price + coin.number * coin.avg_price) / self.number
         return self
 
 @dataclass
@@ -26,6 +28,7 @@ class ActionStatus:
     
 
     
+# TODO: add timestamp?
 @dataclass
 class TradeRequest:
     action: str
@@ -127,4 +130,4 @@ class BaseWallet:
             else:
                 return Response(status=ActionStatus.fail)
         else:
-            raise ValueError('Invalid action')
+            raise ValueError(f'Invalid action: {trade_signal.action}')
