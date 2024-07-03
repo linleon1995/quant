@@ -1,37 +1,36 @@
 from src.eval.evaluator import Evaluator
-from src.wallet import TradeRequest
+from src.wallet import TradeRequest, BaseWallet, Coin
+
 
 def test_basic_eval():
+    wallet = BaseWallet()
+    wallet.deposit(Coin('USDT', 10000))
     evaluator = Evaluator()
-    # evaluator.eval()
-    # assert evaluator.metrics.avg_roi is None
-    # assert evaluator.metrics.win_rate is None
 
-    mock_buy_trade_data = TradeRequest(symbol='ETH', price=3000, 
-                                    bridgecoin_name='USDT', bridgecoin_price=1, 
-                                    action='buy', number=1.0)
-    mock_buy_trade_data2 = TradeRequest(symbol='ETH', price=3400, 
-                                    bridgecoin_name='USDT', bridgecoin_price=1, 
-                                    action='buy', number=1.0)
+    assert evaluator.eval(wallet) is None
 
-    # evaluator.get_full_report()
-    evaluator.add_trade(mock_buy_trade_data)
-    evaluator.add_trade(mock_buy_trade_data2)
-    assert evaluator.stocks['ETH'].avg_cost == 3200
-    assert evaluator.stocks['ETH'].number == 2.0
+    trade_data = TradeRequest(action='buy', symbol='ETH', number=1.0, price=1000)
+    wallet.add_trade(trade_data)
+    assert evaluator.eval(wallet) is None
 
-    mock_sell_trade_data = TradeRequest(symbol='ETH', price=4500, 
-                                     bridgecoin_name='USDT', bridgecoin_price=1, 
-                                     action='sell', number=1.0)
-    evaluator.add_trade(mock_sell_trade_data)
+    trade_data = TradeRequest(action='buy', symbol='ETH', number=1.0, price=2000)
+    wallet.add_trade(trade_data)
+    assert evaluator.eval(wallet) is None
 
-    assert evaluator.stocks['ETH'].avg_cost == 3200
-    assert evaluator.stocks['ETH'].number == 1.0
-    pass
-    
+    trade_data = TradeRequest(action='sell', symbol='ETH', number=1.0, price=4000)
+    wallet.add_trade(trade_data)
+    eval_result = evaluator.eval(wallet)
+    assert eval_result.avg_roi == 1500/4000
+    assert eval_result.max_roi == 1500/4000
+    assert eval_result.min_roi == 1500/4000
+    assert eval_result.trade_times == 1
+    assert eval_result.win_rate == 1.0
 
-    # assert evaluator.metrics.avg_roi == 50.0
-    # assert evaluator.metrics.win_rate == 1.0
-
-    # evaluator.add_trade(mock_buy_trade_data)
-    # evaluator.add_trade(mock_sell_trade_data)
+    trade_data = TradeRequest(action='sell', symbol='ETH', number=1.0, price=2000)
+    wallet.add_trade(trade_data)
+    eval_result = evaluator.eval(wallet)
+    assert eval_result.avg_roi == 1000/5000
+    assert eval_result.max_roi == 1500/4000
+    assert eval_result.min_roi == -500/2500
+    assert eval_result.trade_times == 2
+    assert eval_result.win_rate == 0.5
