@@ -1,7 +1,6 @@
 import pytest
 from src.wallet import BaseWallet, Coin, TradeRequest, Asset
 
-
 @pytest.fixture
 def mock_wallet():
     return BaseWallet()
