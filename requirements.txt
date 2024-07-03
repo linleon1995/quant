@@ -9,3 +9,5 @@ matplotlib
 pprintpp
 requests
 scipy
+ipython
+python-statemachine

@@ -8,9 +8,11 @@ from datetime import datetime
 class Coin:
     symbol: str
     number: float = 0.0
+    avg_price: float = 0.0
 
     def __add__(self, coin: 'Coin') -> 'Coin':
-        self.number = self.number + coin.number
+        self.number += coin.number
+        self.avg_price = (self.number * self.avg_price + coin.number * coin.avg_price) / self.number
         return self
 
 @dataclass
@@ -26,6 +28,7 @@ class ActionStatus:
     
 
     
+# TODO: add timestamp?
 @dataclass
 class TradeRequest:
     action: str
@@ -83,7 +86,10 @@ class Asset:
 class BaseWallet:
     def __init__(self):
         self.asset = Asset()
+        self.trade_history = deque(maxlen=1000)
 
+    # TODO: deposit without coin object
+    # def deposit(self, coin, symbol, number)
     def deposit(self, coin: Coin) -> dict:
         try:
             self.asset.deposit(coin)
@@ -105,6 +111,7 @@ class BaseWallet:
                 coin = Coin(symbol=trade_signal.symbol, number=trade_signal.number)
                 try:
                     self.asset.deposit(coin)
+                    self.trade_history.append(trade_signal)
                     return Response(status=ActionStatus.success)
                 except Exception as e:
                     return Response(status=ActionStatus.fail)
@@ -116,10 +123,11 @@ class BaseWallet:
                 coin = Coin(symbol=trade_signal.bridgecoin_name, number=trade_signal.price * trade_signal.number)
                 try:
                     self.asset.deposit(coin)
+                    self.trade_history.append(trade_signal)
                     return Response(status=ActionStatus.success)
                 except Exception as e:
                     return Response(status=ActionStatus.fail)
             else:
                 return Response(status=ActionStatus.fail)
         else:
-            raise ValueError('Invalid action')
+            raise ValueError(f'Invalid action: {trade_signal.action}')
