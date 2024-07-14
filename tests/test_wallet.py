@@ -9,6 +9,46 @@ def mock_wallet():
 def mock_asset():
     return Asset()
 
+
+def test_get_cost(mock_wallet):
+    mock_wallet.deposit(Coin('USDT', 1000))
+    mock_wallet.update_price(symbol='USDT', price=1)
+    assert mock_wallet.get_cost(symbol='USDT') == 1000
+
+    mock_wallet.deposit(Coin('ETH', 1.5))
+    mock_wallet.update_price(symbol='ETH', price=3000)
+    assert mock_wallet.get_cost(symbol='ETH') == 4500
+
+    assert mock_wallet.get_cost(symbol='BTC') is None
+    mock_wallet.deposit(Coin('BTC', 1.5))
+    assert mock_wallet.get_cost(symbol='BTC') is None
+    mock_wallet.update_price(symbol='BTC', price=40000)
+    assert mock_wallet.get_cost(symbol='BTC') == 60000
+
+
+def test_check_balance(mock_wallet):
+    mock_wallet.deposit(Coin('USDT', 1000))
+    assert mock_wallet.check_balance('USDT', 1000)
+    assert not mock_wallet.check_balance('USDT', 1001)
+
+
+def test_get_balance(mock_wallet):
+    mock_wallet.deposit(Coin('USDT', 1000))
+    assert mock_wallet.get_coin_balance('USDT') == 1000
+    mock_wallet.deposit(Coin('USDT', 1000))
+    assert mock_wallet.get_coin_balance('USDT') == 2000
+
+
+def test__add_trade(mock_wallet):
+    mock_wallet.deposit(Coin('USDT', 10000))
+    trade_signal = TradeRequest(symbol='ETH', price=3000, 
+                             bridgecoin_name='USDT', bridgecoin_price=1, 
+                             action='buy', number=1.0)
+    mock_wallet._add_trade(trade_signal)
+    assert mock_wallet.get_coin_balance('USDT') == 7000
+    assert mock_wallet.get_coin_balance('ETH') == 1
+
+
 def test_coin():
     c1 = Coin('USDT', 1000)
     c2 = Coin('USDT', 2000)
@@ -66,52 +106,6 @@ def test_trade(mock_wallet):
     assert trade_response.status == 'success'
     assert mock_wallet.get_coin_balance('USDT') == 109000
     assert mock_wallet.get_coin_balance('ETH') == 0
-
-
-def test_asset_get_balance(mock_asset):
-    usdt = Coin(symbol='USDT', number=1000)
-    eth = Coin(symbol='ETH', number=1.2)
-
-    # deposit, new coin
-    mock_asset.deposit(usdt)
-    mock_asset.deposit(eth)
-    balance = mock_asset.get_balance()
-    assert isinstance(balance, dict)
-    assert balance['USDT'].number == 1000
-    assert balance['ETH'].number == 1.2
-    
-    # deposit, add to existing coin
-    eth = Coin(symbol='ETH', number=1.3)
-    mock_asset.deposit(eth)
-    assert mock_asset.get_coin_balance(symbol='ETH') == 2.5
-
-    # withdraw, subtract from existing coin
-    eth = Coin(symbol='ETH', number=1.0)
-    mock_asset.withdraw(eth)
-    assert mock_asset.get_coin_balance(symbol='ETH') == 1.5
-
-    # withdraw, not enough coin
-    eth = Coin(symbol='ETH', number=2)
-    try:
-        mock_asset.withdraw(eth)
-    except ValueError as e:
-        assert mock_asset.get_coin_balance(symbol='ETH') == 1.5
-
-    # withdraw, just enough coin
-    eth = Coin(symbol='ETH', number=1.5)
-    mock_asset.withdraw(eth)
-    assert mock_asset.get_coin_balance(symbol='ETH') == 0.0
-
-
-def test_asset_add_coin(mock_asset):
-    usdt = Coin(symbol='USDT', number=1000)
-    mock_asset.deposit(usdt)
-    usdt_coin = mock_asset.get_coin('USDT')
-    assert usdt_coin.symbol == 'USDT'
-    assert usdt_coin.number == 1000
-
-    usdt_number = mock_asset.get_coin_balance('USDT')
-    assert usdt_number == 1000
 
 
 
