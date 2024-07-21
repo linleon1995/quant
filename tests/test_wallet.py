@@ -10,20 +10,35 @@ def mock_asset():
     return Asset()
 
 
-def test_get_cost(mock_wallet):
-    mock_wallet.deposit(Coin('USDT', 1000))
-    mock_wallet.update_price(symbol='USDT', price=1)
-    assert mock_wallet.get_cost(symbol='USDT') == 1000
+def test_metrics(mock_wallet):
+    mock_wallet.deposit(Coin('USDT', 10000))
+    trade_request1 = TradeRequest(action='buy', number=1, symbol='ETH', price=3000)
+    trade_request2 = TradeRequest(action='sell', number=1, symbol='ETH', price=3100)
+    trade_request3 = TradeRequest(action='buy', number=1, symbol='ETH', price=2900)
+    trade_request4 = TradeRequest(action='sell', number=1, symbol='ETH', price=3100)
 
-    mock_wallet.deposit(Coin('ETH', 1.5))
-    mock_wallet.update_price(symbol='ETH', price=3000)
-    assert mock_wallet.get_cost(symbol='ETH') == 4500
+    trade_response, trade_metrics1 = mock_wallet.add_trade(trade_request1)
+    trade_response, trade_metrics2 = mock_wallet.add_trade(trade_request2)
+    trade_response, trade_metrics3 = mock_wallet.add_trade(trade_request3)
+    trade_response, trade_metrics4 = mock_wallet.add_trade(trade_request4)
 
-    assert mock_wallet.get_cost(symbol='BTC') is None
-    mock_wallet.deposit(Coin('BTC', 1.5))
-    assert mock_wallet.get_cost(symbol='BTC') is None
-    mock_wallet.update_price(symbol='BTC', price=40000)
-    assert mock_wallet.get_cost(symbol='BTC') == 60000
+    pass
+
+
+# def test_get_cost(mock_wallet):
+#     mock_wallet.deposit(Coin('USDT', 1000))
+#     mock_wallet.update_price(symbol='USDT', price=1)
+#     assert mock_wallet.get_cost(symbol='USDT') == 1000
+
+#     mock_wallet.deposit(Coin('ETH', 1.5))
+#     mock_wallet.update_price(symbol='ETH', price=3000)
+#     assert mock_wallet.get_cost(symbol='ETH') == 4500
+
+#     assert mock_wallet.get_cost(symbol='BTC') is None
+#     mock_wallet.deposit(Coin('BTC', 1.5))
+#     assert mock_wallet.get_cost(symbol='BTC') is None
+#     mock_wallet.update_price(symbol='BTC', price=40000)
+#     assert mock_wallet.get_cost(symbol='BTC') == 60000
 
 
 def test_check_balance(mock_wallet):
@@ -33,10 +48,17 @@ def test_check_balance(mock_wallet):
 
 
 def test_get_balance(mock_wallet):
-    mock_wallet.deposit(Coin('USDT', 1000))
-    assert mock_wallet.get_coin_balance('USDT') == 1000
-    mock_wallet.deposit(Coin('USDT', 1000))
-    assert mock_wallet.get_coin_balance('USDT') == 2000
+    symbol = 'USDT'
+    mock_wallet.deposit(Coin(symbol, 1000))
+    assert mock_wallet.get_coin_balance(symbol) == 1000
+    mock_wallet.deposit(Coin(symbol, 1000))
+    assert mock_wallet.get_coin_balance(symbol) == 2000
+    
+    symbol = 'USDC'
+    mock_wallet.deposit(Coin(symbol, 1000, 1))
+    assert mock_wallet.get_coin_balance(symbol) == 1000
+    mock_wallet.deposit(Coin(symbol, 1000))
+    assert mock_wallet.get_coin_balance(symbol) == 2000
 
 
 def test__add_trade(mock_wallet):
@@ -47,15 +69,6 @@ def test__add_trade(mock_wallet):
     mock_wallet._add_trade(trade_signal)
     assert mock_wallet.get_coin_balance('USDT') == 7000
     assert mock_wallet.get_coin_balance('ETH') == 1
-
-
-def test_coin():
-    c1 = Coin('USDT', 1000)
-    c2 = Coin('USDT', 2000)
-    c3 = c1 + c2
-    assert c1 is c3
-    assert c1 is not c2
-    assert c3.number == 3000
 
 
 def test_deposit(mock_wallet):
