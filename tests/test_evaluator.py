@@ -1,36 +1,30 @@
-from src.eval.evaluator import Evaluator
+import numpy as np
+
+from src.eval.evaluator import Evaluator, Metrics
 from src.wallet import TradeRequest, BaseWallet, Coin
 
 
-def test_basic_eval():
-    wallet = BaseWallet()
-    wallet.deposit(Coin('USDT', 10000))
+def test_eval():
     evaluator = Evaluator()
+    trade_metrics = None
+    trade_metrics = evaluator.calculate_aggregated_metrics(cost=1000, trades=[], metrics=trade_metrics)
+    assert isinstance(trade_metrics, Metrics)
 
-    assert evaluator.eval(wallet) is None
-
-    trade_data = TradeRequest(action='buy', symbol='ETH', number=1.0, price=1000)
-    wallet.add_trade(trade_data)
-    assert evaluator.eval(wallet) is None
-
-    trade_data = TradeRequest(action='buy', symbol='ETH', number=1.0, price=2000)
-    wallet.add_trade(trade_data)
-    assert evaluator.eval(wallet) is None
-
-    trade_data = TradeRequest(action='sell', symbol='ETH', number=1.0, price=4000)
-    wallet.add_trade(trade_data)
-    eval_result = evaluator.eval(wallet)
-    assert eval_result.avg_roi == 1500/4000
-    assert eval_result.max_roi == 1500/4000
-    assert eval_result.min_roi == 1500/4000
-    assert eval_result.trade_times == 1
-    assert eval_result.win_rate == 1.0
-
-    trade_data = TradeRequest(action='sell', symbol='ETH', number=1.0, price=2000)
-    wallet.add_trade(trade_data)
-    eval_result = evaluator.eval(wallet)
-    assert eval_result.avg_roi == 1000/5000
-    assert eval_result.max_roi == 1500/4000
-    assert eval_result.min_roi == -500/2500
-    assert eval_result.trade_times == 2
-    assert eval_result.win_rate == 0.5
+    trades = [
+        TradeRequest(action='sell', symbol='ETH', number=0.5, price=2000),
+        TradeRequest(action='sell', symbol='ETH', number=0.5, price=3000),
+    ]
+    trade_metrics = evaluator.calculate_aggregated_metrics(cost=1000, trades=trades, metrics=trade_metrics)
+    assert trade_metrics.returns == [1.0, 2.0]
+    assert trade_metrics.average_return == 1.5
+    assert trade_metrics.return_std_dev == np.std([(2000-1000)/1000, 
+                                                   (3000-1000)/1000])
+    # assert trade_metrics.total_cost is None
+    assert trade_metrics.total_revenue == 2500
+    assert trade_metrics.total_profit == 1500
+    assert trade_metrics.trade_count == 2
+    assert trade_metrics.win_count == 2
+    assert trade_metrics.win_rate == 1.0
+    assert trade_metrics.peak == 3000
+    # assert trade_metrics.max_drawdown == 0
+    # assert trade_metrics.max_drawdown_rate == 0
