@@ -13,17 +13,18 @@ def main():
     symbol = 'WIFUSDT'
 
     arctic_ops = ArcticDBOperator(url="lmdb://database", lib_name='Binance')
-    DBobject = arctic_ops.read(data_name=symbol, date_range=(datetime(2024, 1, 1, 0, 0), datetime(2024, 4, 15, 16, 17)))
+    DBobject = arctic_ops.read(data_name=symbol, date_range=(datetime(2024, 1, 1, 0, 0), datetime(2024, 6, 15, 16, 17)))
     evaluator = Evaluator()
     # strategy = base_strategy.TestStateMachine(
     #     symbol=symbol,
     #     maxlen=1440,
     #     ma_range_list=[7, 25, 99]
     # )
-    strategy = naive_strategy.NaiveStrategy(buy_rate=0.0, sell_rate=0.04) # TODO: add symbol?
+    N = 100
+    strategy = naive_strategy.NaiveStrategy(buy_rate=0.0, sell_rate=0.04, trade_unit=0.01*N) # TODO: add symbol?
     trader = None
     wallet = BaseWallet()
-    usdt = Coin('USDT', 10)
+    usdt = Coin('USDT', N, cost=1)
     wallet.deposit(usdt)
     for tick in tqdm(DBobject.data.iterrows()):
         timestamp, data = tick
@@ -35,13 +36,14 @@ def main():
                                          )
         # TODO: trade fee
         # trade_response = trader.trade(trade_request)
-        trade_response = trade_request
+        # trade_response = trade_request
         # strategy.push_trade_response(trade_response)
-        if trade_response is not None:
-            wallet.add_trade(trade_request)
-            print(timestamp, wallet.asset.coins)
-    # evaluator.eval(wallet)
-    # pass
+        if trade_request is not None:
+            trade_response, trade_metrics = wallet.add_trade(trade_request)
+            if trade_metrics is not None:
+                print(timestamp, f'{trade_request.action} {trade_request.number} {trade_request.price}')
+                # print(timestamp, f'{trade_metrics.average_return*100:.2f} %')
+    pass
 
 
 if __name__ == '__main__':

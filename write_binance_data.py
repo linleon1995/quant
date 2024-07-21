@@ -74,7 +74,7 @@ def main():
         total_time[symbol] = elapsed_time
 
     arctic_ops = ArcticDBOperator(url="lmdb://database", lib_name='Binance')
-    aa = arctic_ops.read(data_name='WIFUSDT', date_range=(datetime(2024, 4, 1, 0, 0), datetime(2024, 4, 15, 16, 17)))
+    aa = arctic_ops.read(data_name='WIFUSDT', date_range=(datetime(2024, 4, 1, 0, 0), datetime(2024, 7, 14, 16, 17)))
     print(aa.data)
     print(total_time)
 
