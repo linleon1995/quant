@@ -3,6 +3,8 @@ from typing import List, Dict, Optional
 from collections import deque
 from datetime import datetime
 
+from src.eval.evaluator import Evaluator
+
 
 class SingletonCoin:
     _instances = {}
@@ -64,14 +66,18 @@ class Coin:
             self.number = number
             self.cost = cost
         else:
-            total_cost = self.cost * self.number + cost * number
             self.number += number
-            self.cost = total_cost / self.number
+            if self.cost is not None and cost is not None:
+                total_cost = self.cost * self.number + cost * number
+                self.cost = total_cost / self.number
+            elif self.cost is None:
+                self.cost = cost
 
     def subtract_balance(self, number) -> None:
         if number <= self.number:
             self.number -= number
-            self.cost = None if self.number == 0 else self.cost
+            if self.number == 0:
+                self.cost = None
         else:
             raise ValueError(f'Not enough to withdraw {number} {self.symbol} for current balance {self.number}')
 
@@ -123,6 +129,9 @@ class BaseWallet:
     def __init__(self):
         self.asset = Asset()
         self.trade_history = deque(maxlen=1000)
+        self.metrics = None
+        self.evaluator = Evaluator()
+        self.last_trade_idx = 0
 
     # # TODO: deposit without coin object
     # def deposit(self, coin, symbol, number):
@@ -133,9 +142,9 @@ class BaseWallet:
 
     def deposit(self, coin: Coin) -> dict:
         try:
-            self.asset.deposit(coin.symbol, coin.number)
+            self.asset.deposit(coin.symbol, coin.number, coin.cost)
             return Response(status=ActionStatus.success)
-        except Exception:
+        except Exception as e:
             return Response(status=ActionStatus.fail)
         
     def get_coin_balance(self, symbol: str) -> float:
@@ -149,10 +158,9 @@ class BaseWallet:
         if trade_signal.action == 'buy':
             if self.check_balance(symbol=trade_signal.bridgecoin_name, number=trade_signal.price * trade_signal.number):
                 self.asset.withdraw(symbol=trade_signal.bridgecoin_name, number=trade_signal.price * trade_signal.number)
-                coin = Coin(symbol=trade_signal.symbol, number=trade_signal.number)
+                coin = Coin(symbol=trade_signal.symbol, number=trade_signal.number, cost=trade_signal.price)
                 try:
                     self.deposit(coin)
-                    self.trade_history.append(trade_signal)
                     return Response(status=ActionStatus.success)
                 except Exception as e:
                     return Response(status=ActionStatus.fail)
@@ -161,10 +169,9 @@ class BaseWallet:
         elif trade_signal.action == 'sell':
             if self.check_balance(symbol=trade_signal.symbol, number=trade_signal.number):
                 self.asset.withdraw(symbol=trade_signal.symbol, number=trade_signal.number)
-                coin = Coin(symbol=trade_signal.bridgecoin_name, number=trade_signal.price * trade_signal.number)
+                coin = Coin(symbol=trade_signal.bridgecoin_name, number=trade_signal.price * trade_signal.number, cost=trade_signal.price)
                 try:
                     self.deposit(coin)
-                    self.trade_history.append(trade_signal)
                     return Response(status=ActionStatus.success)
                 except Exception as e:
                     return Response(status=ActionStatus.fail)
@@ -179,10 +186,11 @@ class BaseWallet:
     def add_trade(self, trade_signal: TradeRequest):
         cost = self.get_cost(trade_signal.symbol)
         trade_response = self._add_trade(trade_signal)
-        if trade_response.status == 'success' and trade_signal.action == 'sell':
-            trade_metrics = self.calculate_trade_metrics(cost, trade_signal.price, trade_signal.number)
-            self.update_metrics(trade_metrics)
-
+        if trade_response.status == 'success':
+            self.trade_history.append(trade_signal)
+            if trade_signal.action == 'sell':
+                self.update_trade_metrics(cost, list(self.trade_history)[self.last_trade_idx:], self.metrics)
+                self.last_trade_idx = len(self.trade_history)
         # roi = self.evaluator.get_roi(symbol, cost, price)
         # self.evaluator.get_earn(symbol, cost, price, number)
         # win = roi > 0
@@ -190,7 +198,7 @@ class BaseWallet:
         # self.asset.perf.get(symbol)
         # self.asset.perf.get(symbol, 'roi')
         # self.asset.perf.get_total()
-        return trade_response
+        return trade_response, self.metrics
     
-    def get_performance(self):
-        pass
+    def update_trade_metrics(self, cost, trade_history, metrics):
+        self.metrics = self.evaluator.calculate_aggregated_metrics(cost, trade_history, metrics)
