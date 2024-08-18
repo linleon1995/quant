@@ -66,12 +66,12 @@ class Coin:
             self.number = number
             self.cost = cost
         else:
-            self.number += number
             if self.cost is not None and cost is not None:
                 total_cost = self.cost * self.number + cost * number
-                self.cost = total_cost / self.number
+                self.cost = total_cost / (self.number + number)
             elif self.cost is None:
                 self.cost = cost
+            self.number += number
 
     def subtract_balance(self, number) -> None:
         if number <= self.number:
@@ -131,7 +131,6 @@ class BaseWallet:
         self.trade_history = deque(maxlen=1000)
         self.metrics = None
         self.evaluator = Evaluator()
-        self.last_trade_idx = 0
 
     # # TODO: deposit without coin object
     # def deposit(self, coin, symbol, number):
@@ -153,8 +152,17 @@ class BaseWallet:
             return coin.number
         else:
             return 0.0
+    
+    def add_trade(self, trade_signal: TradeRequest):
+        cost = self.get_cost(trade_signal.bridgecoin_name)
+        trade_response = self.update_trade_with_asset(trade_signal)
+        if trade_response.status == 'success':
+            self.trade_history.append(trade_signal)
+            if trade_signal.action == 'sell':
+                self.update_trade_metrics(cost, [trade_signal], self.metrics)
+        return trade_response, self.metrics
         
-    def _add_trade(self, trade_signal: TradeRequest):
+    def update_trade_with_asset(self, trade_signal: TradeRequest):
         if trade_signal.action == 'buy':
             if self.check_balance(symbol=trade_signal.bridgecoin_name, number=trade_signal.price * trade_signal.number):
                 self.asset.withdraw(symbol=trade_signal.bridgecoin_name, number=trade_signal.price * trade_signal.number)
@@ -182,23 +190,6 @@ class BaseWallet:
 
     def check_balance(self, symbol: str, number: int) -> bool:
         return self.asset.is_balance_enough(symbol, number)
-    
-    def add_trade(self, trade_signal: TradeRequest):
-        cost = self.get_cost(trade_signal.symbol)
-        trade_response = self._add_trade(trade_signal)
-        if trade_response.status == 'success':
-            self.trade_history.append(trade_signal)
-            if trade_signal.action == 'sell':
-                self.update_trade_metrics(cost, list(self.trade_history)[self.last_trade_idx:], self.metrics)
-                self.last_trade_idx = len(self.trade_history)
-        # roi = self.evaluator.get_roi(symbol, cost, price)
-        # self.evaluator.get_earn(symbol, cost, price, number)
-        # win = roi > 0
-        # self.asset.perf.update(symbol, roi, win)
-        # self.asset.perf.get(symbol)
-        # self.asset.perf.get(symbol, 'roi')
-        # self.asset.perf.get_total()
-        return trade_response, self.metrics
     
     def update_trade_metrics(self, cost, trade_history, metrics):
         self.metrics = self.evaluator.calculate_aggregated_metrics(cost, trade_history, metrics)

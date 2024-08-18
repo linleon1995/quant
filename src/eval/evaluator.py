@@ -39,12 +39,15 @@ class Metrics:
     total_revenue: float = 0.0
     total_profit: float = 0.0
     returns: List[float] = field(default_factory=list)
+    buy_count: int = 0
+    sell_count: int = 0
     trade_count: int = 0
     win_count: int = 0
     win_rate: float = 0.0
     peak: float = -np.inf
     max_drawdown: float = 0.0
     max_drawdown_rate: float = 0.0
+    # TODO: buy_count need to be added in the future.
 
 
 class Evaluator:
@@ -78,7 +81,7 @@ class Evaluator:
         metrics.total_revenue += trade_metrics["revenue"]
         metrics.total_profit += trade_metrics["profit"]
         metrics.returns.append(trade_metrics["return_rate"])
-        metrics.trade_count += 1
+        metrics.sell_count += 1
 
         # update win count
         if trade_metrics["return_rate"] > 0:
@@ -94,5 +97,5 @@ class Evaluator:
 
         # calculate new aggregated metrics
         metrics.average_return = np.mean(metrics.returns) if metrics.returns else 0
-        metrics.win_rate = (metrics.win_count / metrics.trade_count) if metrics.trade_count > 0 else 0
+        metrics.win_rate = (metrics.win_count / metrics.sell_count) if metrics.sell_count > 0 else 0
         metrics.return_std_dev = np.std(metrics.returns) if metrics.returns else 0

@@ -22,7 +22,7 @@ def test_eval():
     # assert trade_metrics.total_cost is None
     assert trade_metrics.total_revenue == 2500
     assert trade_metrics.total_profit == 1500
-    assert trade_metrics.trade_count == 2
+    assert trade_metrics.sell_count == 2
     assert trade_metrics.win_count == 2
     assert trade_metrics.win_rate == 1.0
     assert trade_metrics.peak == 3000

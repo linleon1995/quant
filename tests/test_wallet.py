@@ -1,9 +1,13 @@
 import pytest
+import numpy as np
+
 from src.wallet import BaseWallet, Coin, TradeRequest, Asset
+
 
 @pytest.fixture
 def mock_wallet():
     return BaseWallet()
+
 
 @pytest.fixture
 def mock_asset():
@@ -22,6 +26,16 @@ def test_metrics(mock_wallet):
     trade_response, trade_metrics3 = mock_wallet.add_trade(trade_request3)
     trade_response, trade_metrics4 = mock_wallet.add_trade(trade_request4)
 
+    assert mock_wallet.metrics.returns == [100/3000, 200/2900]
+    assert mock_wallet.metrics.average_return == np.mean([100/3000, 200/2900])
+    assert mock_wallet.metrics.return_std_dev == np.std([100/3000, 200/2900])
+    # assert trade_metrics.total_cost is None
+    assert mock_wallet.metrics.total_revenue == 6200
+    assert mock_wallet.metrics.total_profit == 300
+    assert mock_wallet.metrics.sell_count == 2
+    assert mock_wallet.metrics.win_count == 2
+    assert mock_wallet.metrics.win_rate == 1.0
+    assert mock_wallet.metrics.peak == 3100
     pass
 
 

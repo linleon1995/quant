@@ -21,7 +21,8 @@ def main():
     #     ma_range_list=[7, 25, 99]
     # )
     N = 100
-    strategy = naive_strategy.NaiveStrategy(buy_rate=0.0, sell_rate=0.04, trade_unit=0.01*N) # TODO: add symbol?
+    trade_ratio = 0.1
+    strategy = naive_strategy.NaiveStrategy(buy_rate=0.0, sell_rate=0.04, trade_unit=trade_ratio*N) # TODO: add symbol?
     trader = None
     wallet = BaseWallet()
     usdt = Coin('USDT', N, cost=1)
@@ -42,7 +43,9 @@ def main():
             trade_response, trade_metrics = wallet.add_trade(trade_request)
             if trade_metrics is not None:
                 print(timestamp, f'{trade_request.action} {trade_request.number} {trade_request.price}')
-                # print(timestamp, f'{trade_metrics.average_return*100:.2f} %')
+                if  trade_request.action == 'sell':
+                    print(wallet.get_coin_balance('USDT'))
+                    print(timestamp, f'{trade_metrics.average_return*100:.2f} %')
     pass
 
 
