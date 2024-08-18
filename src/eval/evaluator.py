@@ -1,7 +1,9 @@
 from dataclasses import dataclass, field
 from collections import deque
+from typing import List, Optional
 
-from src.wallet import TradeRequest, BaseWallet
+import numpy as np
+
 
 @dataclass
 class OneStock:
@@ -29,85 +31,71 @@ class EvalResult:
     end_timestamp: str = None
 
 
-# TODO: 假設前提為無資金假設，所有的交易都可以被完成，考慮這種情況的策略表現
+@dataclass
+class Metrics:
+    average_return: float = 0.0
+    return_std_dev: float = 0.0
+    total_cost: float = 0.0
+    total_revenue: float = 0.0
+    total_profit: float = 0.0
+    returns: List[float] = field(default_factory=list)
+    buy_count: int = 0
+    sell_count: int = 0
+    trade_count: int = 0
+    win_count: int = 0
+    win_rate: float = 0.0
+    peak: float = -np.inf
+    max_drawdown: float = 0.0
+    max_drawdown_rate: float = 0.0
+    # TODO: buy_count need to be added in the future.
+
+
 class Evaluator:
-    def __init__(self):
-        self.init_money = {'USDT': 10000}
-        self.stocks = {}
+    def calculate_aggregated_metrics(self, cost, trades: List, metrics: Optional[Metrics] = None) -> Metrics:
+        if metrics is None:
+            metrics = self._init_metrics()
 
-    def collect(self):
-        pass
+        # update trade metrics for every new trade
+        for trade in trades:
+            trade_metrics = self.calculate_trade_metrics(cost, trade.price, trade.number)
+            self.update_metrics(trade_metrics, metrics)
+        return metrics
 
-    def group_symbol(self, trade_history: deque):
-        group_trade_history = {}
-        for trade in trade_history:
-            if group_trade_history.get(trade.symbol) is None:
-                group_trade_history[trade.symbol] = []
-            group_trade_history[trade.symbol].append(trade)
-        return group_trade_history
-
-    def eval(self, wallet: BaseWallet) -> EvalResult:
-        if len(wallet.trade_history) == 0:
-            return None
+    def _init_metrics(self) -> Metrics:
+        return Metrics()
         
-        total_profit = 0
-        max_profit = float('-inf')
-        min_profit = float('inf')
-        win_count = 0
-        total_trades_value = 0
+    def calculate_trade_metrics(self, cost, sell_price, amount):
+        revenue = amount * sell_price
+        profit = revenue - cost * amount
+        return_rate = (sell_price-cost) / cost
+        return {
+            # "cost": cost,
+            "revenue": revenue,
+            "profit": profit,
+            "return_rate": return_rate,
+            "sell_price": sell_price,
+        }
+    
+    def update_metrics(self, trade_metrics, metrics: Metrics):
+        # metrics.total_cost += trade_metrics["cost"]
+        metrics.total_revenue += trade_metrics["revenue"]
+        metrics.total_profit += trade_metrics["profit"]
+        metrics.returns.append(trade_metrics["return_rate"])
+        metrics.sell_count += 1
 
-        trade_history = self.group_symbol(wallet.trade_history)
-        balance = {symbol: 0 for symbol in trade_history}
-        for symbol, trade_history in trade_history.items():
-            for trade in trade_history:
-                if trade.action == 'buy':
-                    balance[symbol] += trade.number
-                elif trade.action == 'sell':
-                    balance[symbol] -= trade.number
-                    
+        # update win count
+        if trade_metrics["return_rate"] > 0:
+            metrics.win_count += 1
 
+        # update max drawdown
+        if trade_metrics["sell_price"] > metrics.peak:
+            metrics.peak = trade_metrics["sell_price"]
+        drawdown = metrics.peak - trade_metrics["sell_price"]
+        if drawdown > metrics.max_drawdown:
+            metrics.max_drawdown = drawdown
+            metrics.max_drawdown_rate = drawdown / metrics.peak
 
-
-
-        for trade in wallet.trade_history:
-            if trade.symbol not in self.stocks:
-                self.stocks[trade.symbol] = OneStock(symbol=trade.symbol)
-
-
-            trade_value = trade.number * trade.price
-            if trade.action == 'buy':
-                total_trades_value += trade_value
-            elif trade.action == 'sell':
-                total_trades_value -= trade_value
-                profit = trade_value - (trade.number * trade.bridgecoin_price)
-                total_profit += profit
-                max_profit = max(max_profit, profit)
-                min_profit = min(min_profit, profit)
-                if profit > 0:
-                    win_count += 1
-
-        if min_profit == float('inf') or max_profit == float('-inf'):
-            return None
-        
-        trade_times = len(wallet.trade_history)
-        avg_roi = (total_profit / total_trades_value) * 100 if total_trades_value > 0 else 0
-        win_rate = (win_count / trade_times) * 100 if trade_times > 0 else 0
-
-        # # Assuming trade history has timestamps for start and end trades
-        # start_timestamp = wallet.trade_history[0].timestamp if wallet.trade_history else None
-        # end_timestamp = wallet.trade_history[-1].timestamp if wallet.trade_history else None
-
-        return EvalResult(
-            avg_roi=avg_roi,
-            max_roi=max_profit,
-            min_roi=min_profit,
-            trade_times=trade_times,
-            win_rate=win_rate
-        )
-
-    def add_trade(self, trade_data: TradeRequest):
-        if trade_data.action == 'buy':
-            if trade_data.symbol not in self.stocks:
-                self.stocks[trade_data.symbol] = OneStock(symbol=trade_data.symbol)
-            
-            self.stocks[trade_data.symbol].trade_history.append(trade_data)
+        # calculate new aggregated metrics
+        metrics.average_return = np.mean(metrics.returns) if metrics.returns else 0
+        metrics.win_rate = (metrics.win_count / metrics.sell_count) if metrics.sell_count > 0 else 0
+        metrics.return_std_dev = np.std(metrics.returns) if metrics.returns else 0
