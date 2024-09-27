@@ -5,7 +5,7 @@ from dataclasses import fields
 import pandas as pd
 
 from src.binance_api import BinanceAPI
-from src.create_backtest_database import ArcticDBOperator
+from src.database_operator import ArcticDBOperator
 from src.data_process.data_structure import BinanceTick
 
 

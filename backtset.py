@@ -2,7 +2,7 @@ from datetime import datetime
 
 from tqdm import tqdm
 
-from src.create_backtest_database import ArcticDBOperator
+from src.database_operator import ArcticDBOperator
 from src.strategies import naive_strategy
 # from src.strategies import base_strategy, moving_average
 from src.eval.evaluator import Evaluator

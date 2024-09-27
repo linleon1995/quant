@@ -29,7 +29,12 @@ class ArcticDBOperator:
 
     def read(self, data_name, date_range=None):
         lib = self.ac[self.lib_name]
-        data = lib.read(data_name, date_range=date_range)
+        if not lib.has_symbol(data_name):
+            raise ValueError(f'{data_name} not found in {self.lib_name}')
+        try:
+            data = lib.read(data_name, date_range=date_range)
+        except Exception as e:
+            raise ValueError(f'Error in reading {data_name} from {self.lib_name}: {e}')
         return data
 
 
