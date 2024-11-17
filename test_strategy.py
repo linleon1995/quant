@@ -10,8 +10,8 @@ from src.create_backtest_database import ArcticDBOperator
 
 
 class SimpleMomentumStrategy:
-    def __init__(self, short_window=3, long_window=10, base_threshold=0.001, stop_loss=0.02, 
-                 take_profit=0.05, fee_rate=0.001, momentum_window=20, momentum_threshold_count=5):
+    def __init__(self, short_window=3, long_window=10, base_threshold=0.001, stop_loss=0.10, 
+                 take_profit=None, fee_rate=0.001, momentum_window=20, momentum_threshold_count=5):
         """
         初始化策略參數
         """
@@ -108,9 +108,18 @@ class SimpleMomentumStrategy:
 
         if change_percentage <= -self.stop_loss:
             return "SELL"  # 止損
-        # elif change_percentage >= self.take_profit:
-        #     return "SELL"  # 停利
+        if self.take_profit is not None and change_percentage >= self.take_profit:
+            return "SELL"  # 停利
         return None
+
+    def update_last_high(self):
+        from scipy.signal import find_peaks
+        import numpy as np
+        valleys, _ = find_peaks(-np.array(list(self.price_data)))
+        if valleys.size == 0:
+            return self.last_high
+        else:
+            return self.price_data[valleys[-1]]
 
     def check_signal(self):
         """
@@ -144,12 +153,16 @@ class SimpleMomentumStrategy:
         if not self.check_momentum_density():
             return None
 
+        self.last_high = self.update_last_high()
         # 僅在空倉時允許買入
-        if self.position is None and sma_short > sma_long and momentum > dynamic_threshold:
+        if self.position is None and momentum > dynamic_threshold:
+            self.last_high = price
             return "BUY"
         # 僅在持倉時允許賣出
-        # elif self.position == "BUY" and sma_short < sma_long and momentum < -dynamic_threshold:
-        #     return "SELL"
+        elif self.position == "BUY" and momentum < -dynamic_threshold and price < self.last_high:
+            # reset momentum signals
+            self.momentum_signals.clear()
+            return "SELL"
         
         return None
 
@@ -235,22 +248,20 @@ def test():
     coin_list = [
         'DOGEUSDT'
     ]
-    start_time = datetime(2024, 1, 1, 0, 0)
+    start_time = datetime(2024, 11, 1, 0, 0)
     end_time = datetime(2024, 11, 15, 0, 0)
     total_time = {}
     arctic_ops = ArcticDBOperator(url="lmdb://arctic_database", lib_name='Binance')
 
     # strategy
+    base_threshold = 0.002
+    stop_loss = 0.10
     momentum_window = 10
-    strategy = strategy = SimpleMomentumStrategy(
-            short_window=3,
-            long_window=10,
-            base_threshold=0.004,
-            stop_loss=0.1,
-            take_profit=0.20,
-            fee_rate=0.001,
-            momentum_window=momentum_window
-        )
+    strategy = SimpleMomentumStrategy(
+        base_threshold=base_threshold,
+        stop_loss=stop_loss,
+        momentum_window=momentum_window
+    )
 
     # Read data from database
     arctic_obj = arctic_ops.read(data_name=coin_list[0], start_time=start_time, end_time=end_time)
