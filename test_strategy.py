@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from src.create_backtest_database import ArcticDBOperator
+from src.binance_api import BinanceAPI
+from pathlib import Path
 
 
 class SimpleMomentumStrategy:
@@ -32,6 +34,9 @@ class SimpleMomentumStrategy:
         self.momentum_signals = deque(maxlen=momentum_window)  # 儲存近期 momentum 信號
         self.momentum = None
         self.dynamic_threshold = None
+        self.total_earn = 0
+        self.trade_count = 0
+
     def add_price(self, price):
         """
         新增價格到資料窗口
@@ -59,14 +64,17 @@ class SimpleMomentumStrategy:
         """
         動態調整動能閾值
         """
+        # TODO: auto base_threshold
         if len(self.price_data) < self.data_window_size:
             return self.base_threshold
 
         # 使用價格變化率的標準差來調整
         prices = list(self.price_data)
         momentum_values = [(prices[i] - prices[i - 1]) / prices[i - 1] for i in range(1, len(prices))]
-        avg_momentum = sum(momentum_values) / len(momentum_values)
-        adjusted_threshold = self.base_threshold + avg_momentum * 0.5
+        # avg_momentum = sum(momentum_values) / len(momentum_values)
+        # adjusted_threshold = self.base_threshold + avg_momentum * 0.5
+        max_momentum = max(momentum_values)
+        adjusted_threshold = self.base_threshold + max_momentum * 0.125
         return max(self.base_threshold, adjusted_threshold)  # 確保閾值不小於基準
 
     def update_momentum_signals(self, momentum, threshold):
@@ -117,7 +125,7 @@ class SimpleMomentumStrategy:
         import numpy as np
         valleys, _ = find_peaks(-np.array(list(self.price_data)))
         if valleys.size == 0:
-            return self.last_high
+            return self.price_data[-1]
         else:
             return self.price_data[valleys[-1]]
 
@@ -156,7 +164,7 @@ class SimpleMomentumStrategy:
         self.last_high = self.update_last_high()
         # 僅在空倉時允許買入
         if self.position is None and momentum > dynamic_threshold:
-            self.last_high = price
+            self.last_high = price * (1-self.stop_loss)
             return "BUY"
         # 僅在持倉時允許賣出
         elif self.position == "BUY" and momentum < -dynamic_threshold and price < self.last_high:
@@ -179,8 +187,13 @@ class SimpleMomentumStrategy:
             # 計算交易收益
             profit = price - self.entry_price
             net_profit = profit - (self.entry_price + price) * self.fee_rate
+            earn = net_profit / self.entry_price
             self.total_profit += net_profit
-            print(f"------Executed SELL at price {price} (Net Profit: {net_profit:.2f}, Total Profit: {self.total_profit:.2f})")
+            self.trade_count += 1
+            self.total_earn += earn
+            avg_earn = self.total_earn / self.trade_count
+            print(f"------Executed SELL at price {price} (Earn: {earn*100:.2f} % Avg Earn: {avg_earn*100:.2f} %)")
+            print(f"------Net Profit: {net_profit:.2f}, Total Profit: {self.total_profit:.2f})")
             self.position = None
             self.entry_price = None
 
@@ -197,7 +210,7 @@ class SimpleMomentumStrategy:
 
 
 
-def plot_price_with_signals(prices, timestamps, buy_signals, sell_signals):
+def plot_price_with_signals(symbol, prices, timestamps, buy_signals, sell_signals, dyanmic_thresholds, avg_earn, save_root):
     """
     繪製價格走勢圖，並標記 Buy 和 Sell 信號，X 軸顯示時間戳。
     
@@ -215,6 +228,7 @@ def plot_price_with_signals(prices, timestamps, buy_signals, sell_signals):
 
     # 繪製價格走勢圖
     ax.plot(timestamps, prices, label="Price", linewidth=1.5, color="blue")
+    # ax.plot(timestamps, dyanmic_thresholds, label='threshold')
 
     # 標記 Buy 信號
     for idx in buy_signals:
@@ -235,66 +249,92 @@ def plot_price_with_signals(prices, timestamps, buy_signals, sell_signals):
     fig.autofmt_xdate()  # 自動旋轉 X 軸標籤
 
     # 加入標籤與圖例
-    ax.set_title("Price Trend with Buy/Sell Signals")
+    ax.set_title(f"({symbol}) Price Trend with Buy/Sell Signals")
     ax.set_xlabel("Timestamp")
     ax.set_ylabel("Price")
     ax.legend()
     ax.grid(True)
-    plt.show()
-    fig.savefig('test.png')
+    ax.text(0.05, 0.95, f'Avg Earn: {avg_earn*100:.2f} %', transform=ax.transAxes)
+    # plt.show()
+    save_path = save_root / f'{symbol}.png'
+    fig.savefig(save_path)
 
 def test():
     # data
     coin_list = [
-        'DOGEUSDT'
+        'ETHUSDT'
     ]
-    start_time = datetime(2024, 11, 1, 0, 0)
+    coin_list = [
+        'ATAUSDT', 'PEPEUSDT', 'ETHUSDT', 'BTCUSDT', 'BNBUSDT', 'WIFUSDT', 'NEIROUSDT', 'PNUTUSDT', 'FTTUSDT', 'DOGEUSDT'
+    ]
+    binance_api = BinanceAPI()
+    ticker_prices = binance_api.get_usdt_ticker(bridge='USDT')
+    coin_list = [coin['symbol'] for coin in ticker_prices]
+    
+    start_time = datetime(2024, 1, 1, 0, 0)
     end_time = datetime(2024, 11, 15, 0, 0)
     total_time = {}
     arctic_ops = ArcticDBOperator(url="lmdb://arctic_database", lib_name='Binance')
+    save_root = 'results'
+    save_root = Path(save_root)
+    save_root.mkdir(parents=True, exist_ok=True)
 
-    # strategy
-    base_threshold = 0.002
-    stop_loss = 0.10
-    momentum_window = 10
-    strategy = SimpleMomentumStrategy(
-        base_threshold=base_threshold,
-        stop_loss=stop_loss,
-        momentum_window=momentum_window
-    )
+    for symbol in coin_list:
+        # TODO: remove this
+        if symbol == 'ETHDOWNUSDT':
+            break
+        # strategy
+        base_threshold = 0.003
+        stop_loss = 0.10
+        momentum_window = 5
+        strategy = SimpleMomentumStrategy(
+            base_threshold=base_threshold,
+            stop_loss=stop_loss,
+            momentum_window=momentum_window
+        )
 
-    # Read data from database
-    arctic_obj = arctic_ops.read(data_name=coin_list[0], start_time=start_time, end_time=end_time)
-    dataset = arctic_obj.data
-    prices, dyanmic_thresholds, momentums = [], [], []
-    buy_signals, sell_signals = [], []
-    for i, (timestamp, data) in enumerate(dataset.iterrows()):
-        open_price = float(data['open_price'])
-        strategy.on_new_price(open_price)
-        if strategy.signal == 'BUY':
-            buy_signals.append(i)
-        elif strategy.signal == 'SELL':
-            sell_signals.append(i)
+        # Read data from database
+        try:
+            arctic_obj = arctic_ops.read(data_name=symbol, start_time=start_time, end_time=end_time)
+        except Exception as e:
+            print(f'Error: {e}')
+            continue
+        dataset = arctic_obj.data
+        prices, dyanmic_thresholds, momentums = [], [], []
+        buy_signals, sell_signals = [], []
+        for i, (timestamp, data) in enumerate(dataset.iterrows()):
+            open_price = float(data['open_price'])
+            strategy.on_new_price(open_price)
+            if strategy.signal == 'BUY':
+                buy_signals.append(i)
+            elif strategy.signal == 'SELL':
+                sell_signals.append(i)
 
-        if strategy.dynamic_threshold is not None:
-            dyanmic_thresholds.append(strategy.dynamic_threshold)
-        if strategy.momentum is not None:
-            momentums.append(strategy.momentum)
-        prices.append(open_price)
+            if strategy.dynamic_threshold is not None:
+                dyanmic_thresholds.append(strategy.dynamic_threshold)
+            if strategy.momentum is not None:
+                momentums.append(strategy.momentum)
+            prices.append(open_price)
 
-        if i%100 == 0:
-            print(f'{timestamp} - open_price: {open_price}')
+            if i%100 == 0:
+                print(f'{timestamp} - {symbol} - open_price: {open_price}')
 
-    prices = prices[momentum_window-1:]
-    timestamps = dataset.index[momentum_window-1:]
-    plot_price_with_signals(prices, timestamps=timestamps, buy_signals=buy_signals, sell_signals=sell_signals)
-    # fig, ax = plt.subplots(1, 1, figsize=(15, 5))
-    # ax.plot(prices, label='price')
-    # ax.plot(dyanmic_thresholds, label='threshold')
-    # ax.plot(momentums, label='momentum')
-    # ax.legend()
-    # plt.show()
-    pass
+        prices = prices[momentum_window-1:]
+        timestamps = dataset.index[momentum_window-1:]
+        if strategy.trade_count == 0:
+            avg_earn = 0.0
+        else:
+            avg_earn = strategy.total_earn / strategy.trade_count
+        plot_price_with_signals(symbol, prices, timestamps=timestamps, buy_signals=buy_signals, 
+                                sell_signals=sell_signals, dyanmic_thresholds=dyanmic_thresholds, 
+                                avg_earn=avg_earn, save_root=save_root)
+        # fig, ax = plt.subplots(1, 1, figsize=(15, 5))
+        # ax.plot(prices, label='price')
+        # ax.plot(dyanmic_thresholds, label='threshold')
+        # ax.plot(momentums, label='momentum')
+        # ax.legend()
+        # plt.show()
+        pass
 
 if __name__ == '__main__':
     test()
