@@ -4,7 +4,7 @@ import pandas as pd
 import arcticdb as adb
 
 class ArcticDBOperator:
-    def __init__(self, url, lib_name):
+    def __init__(self, url="lmdb://arctic_database", lib_name="default"):
         self.url = url
         self.ac = adb.Arctic(url)
         lib_list = self.ac.list_libraries()
@@ -27,7 +27,8 @@ class ArcticDBOperator:
         else:
             lib.write(symbol=data_name, data=data)
 
-    def read(self, data_name, date_range=None):
+    def read(self, data_name, start_time, end_time):
+        date_range = (start_time, end_time)
         lib = self.ac[self.lib_name]
         data = lib.read(data_name, date_range=date_range)
         return data
@@ -55,20 +56,3 @@ def write_database(formated_data, lib_name, data_name):
 
     lib = ac[lib_name]
     lib.write(data_name, formated_data)
-
-
-
-if __name__ == '__main__':
-    lib_path = "lmdb:///Leon/SideProject/quant"
-    lib_name = 'travel_data'
-
-
-    # data = get_data()
-    # formated_data = format_data(data)
-    # write_database(formated_data, lib_name, data_name='BTCUSDT')
-
-    ac = adb.Arctic(lib_path)
-    lib = ac[lib_name]
-    data = lib.read('BTCUSDT')
-    data2 = lib.read("BTCUSDT", date_range=(datetime(2024, 4, 5, 1, 16), datetime(2024, 4, 5, 2, 17)))
-    print(data2.data)

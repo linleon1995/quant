@@ -1,16 +1,36 @@
-from src.strategies.base_strategy import StrategyExecuter
+# from datetime import datetime
+# import pytest
+
+# from src.create_backtest_database import ArcticDBOperator
+# from tests.utils import generate_random_data
 
 
-def get_data():
-    pass
-    # btc_1m_prices = ArcticDBOperator.get_data(market='Binanece',
-    #                                         instrument='USD-M',
-    #                                         tag='perceptual',
-    #                                         pair='BTCUSDT',
-    #                                         start=datetime(2024, 4, 5, 1, 16),
-    #                                         end=datetime(2024, 4, 5, 2, 17),
-    #                                         freq='1min')
+# @pytest.fixture
+# def mock_data():
+#     mock_data, start_time, end_time = generate_random_data(5)
+#     return {'data': mock_data, 'start_time': start_time, 'end_time': end_time}
 
 
-def test_write_data():
-    StrategyExecuter()
+# @pytest.fixture
+# def mock_db_operator(mock_data):
+#     db_operator = ArcticDBOperator(url="lmdb://arctic_database", lib_name='test')
+#     db_operator.write(data_name='BTCUSDT', data=mock_data['data'])
+#     return db_operator
+
+
+# def test_init(mock_db_operator):
+#     assert mock_db_operator is not None
+#     assert isinstance(mock_db_operator, ArcticDBOperator)
+
+
+# # def test_write_data(mock_db_operator, mock_data):
+# #     mock_db_operator.write(data_name='BTCUSDT', data=mock_data['data'])
+
+
+# def test_read_non_exist_data(mock_db_operator, mock_data):
+#     pass
+#     # mock_db_operator.read(data_name='BTCUSDT', start)
+
+# def test_read_exist_data(mock_db_operator, mock_data):
+#     read_data = mock_db_operator.read(data_name='BTCUSDT', start_time=mock_data['start_time'], end_time=mock_data['end_time'])
+#     assert read_data == mock_data['data']
