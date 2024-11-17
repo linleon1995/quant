@@ -69,11 +69,15 @@ def write_coin_kline_into_database(arctic_ops, symbol, start_time, end_time=None
 
 def main():
     coin_list = [
-        'ATAUSDT', 'PEPEUSDT', 'ETHUSDT', 'BTCUSDT', 'BNBUSDT'
+        'ATAUSDT', 'PEPEUSDT', 'ETHUSDT', 'BTCUSDT', 'BNBUSDT', 'WIFUSDT', 'NEIROUSDT', 'PNUTUSDT'
     ]
-    coin_list = [
-        'DOGEUSDT'
-    ]
+    # coin_list = [
+    #     'FTTUSDT', 'DOGEUSDT'
+    # ]
+    binance_api = BinanceAPI()
+    ticker_prices = binance_api.get_usdt_ticker(bridge='USDT')
+    coin_list = [coin['symbol'] for coin in ticker_prices]
+
     start_time = datetime(2024, 1, 1, 0, 0)
     end_time = datetime(2024, 10, 31, 0, 0)
     end_time = None
@@ -84,17 +88,22 @@ def main():
     arctic_ops = ArcticDBOperator(url="lmdb://arctic_database", lib_name='Binance')
 
     # Write data into database
+    error_coin = []
     for symbol in coin_list:
         st = time.time()
-        write_coin_kline_into_database(arctic_ops, symbol=symbol, 
-                                       start_time=start_time, end_time=end_time)
+        try:
+            write_coin_kline_into_database(arctic_ops, symbol=symbol, 
+                                        start_time=start_time, end_time=end_time)
+        except Exception as e:
+            error_coin.append(symbol)
         elapsed_time = time.time() - st
         total_time[symbol] = elapsed_time
 
-    # Read data from database
-    arctic_obj = arctic_ops.read(data_name=coin_list[0], start_time=start_time, end_time=end_time)
-    print(arctic_obj.data)
-    print(total_time)
+    # # Read data from database
+    # arctic_obj = arctic_ops.read(data_name=coin_list[0], start_time=start_time, end_time=end_time)
+    # print(arctic_obj.data)
+    # print(total_time)
+    print(error_coin)
 
 if __name__ == '__main__':
     main()
