@@ -56,20 +56,3 @@ def write_database(formated_data, lib_name, data_name):
 
     lib = ac[lib_name]
     lib.write(data_name, formated_data)
-
-
-
-if __name__ == '__main__':
-    lib_path = "lmdb:///arctic_database"
-    lib_name = 'travel_data'
-
-
-    # data = get_data()
-    # formated_data = format_data(data)
-    # write_database(formated_data, lib_name, data_name='BTCUSDT')
-
-    ac = adb.Arctic(lib_path)
-    lib = ac[lib_name]
-    data = lib.read('BTCUSDT')
-    data2 = lib.read("BTCUSDT", date_range=(datetime(2024, 4, 5, 0, 0), datetime(2024, 4, 5, 0, 1)))
-    print(data2.data)
