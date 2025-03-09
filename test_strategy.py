@@ -2,18 +2,19 @@ import random
 import time
 from collections import deque
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 
-from src.create_backtest_database import ArcticDBOperator
 from src.binance_api import BinanceAPI
-from pathlib import Path
+from src.create_backtest_database import ArcticDBOperator
 
 
 class SimpleMomentumStrategy:
     def __init__(self, short_window=3, long_window=10, base_threshold=0.001, stop_loss=0.10, 
-                 take_profit=None, fee_rate=0.001, momentum_window=20, momentum_threshold_count=5):
+                 take_profit=None, fee_rate=0.001, momentum_window=20, momentum_threshold_ratio=0.5):
         """
         初始化策略參數
         """
@@ -24,7 +25,7 @@ class SimpleMomentumStrategy:
         self.take_profit = take_profit
         self.fee_rate = fee_rate
         self.momentum_window = momentum_window
-        self.momentum_threshold_count = momentum_threshold_count
+        self.momentum_threshold_count = int(momentum_threshold_ratio*momentum_window)
 
         self.data_window_size = max(short_window, long_window, momentum_window)
         self.price_data = deque(maxlen=self.data_window_size)
@@ -121,8 +122,8 @@ class SimpleMomentumStrategy:
         return None
 
     def update_last_high(self):
-        from scipy.signal import find_peaks
         import numpy as np
+        from scipy.signal import find_peaks
         valleys, _ = find_peaks(-np.array(list(self.price_data)))
         if valleys.size == 0:
             return self.price_data[-1]
@@ -139,7 +140,8 @@ class SimpleMomentumStrategy:
         sma_short = self.calculate_sma(self.short_window)
         sma_long = self.calculate_sma(self.long_window)
         momentum = self.calculate_momentum()
-        dynamic_threshold = self.adjust_threshold()
+        # dynamic_threshold = self.adjust_threshold()
+        dynamic_threshold = self.base_threshold
 
         if sma_short is None or sma_long is None or momentum is None:
             return None
@@ -255,9 +257,56 @@ def plot_price_with_signals(symbol, prices, timestamps, buy_signals, sell_signal
     ax.legend()
     ax.grid(True)
     ax.text(0.05, 0.95, f'Avg Earn: {avg_earn*100:.2f} %', transform=ax.transAxes)
-    # plt.show()
-    save_path = save_root / f'{symbol}.png'
+    return fig
+
+
+def setup_save_root():
+    save_root = 'results'
+    save_root = Path(save_root)
+    save_root.mkdir(parents=True, exist_ok=True)
+    unix_time = str(time.time())
+    save_root = save_root / unix_time
+    save_root.mkdir(parents=True, exist_ok=True)
+    return save_root
+
+
+def test_once_strategy(symbol, strategy, dataset, save_root):
+    prices, dyanmic_thresholds, momentums = [], [], []
+    buy_signals, sell_signals = [], []
+    
+    for i, (timestamp, data) in enumerate(dataset.iterrows()):
+        open_price = float(data['open_price'])
+        strategy.on_new_price(open_price)
+        if strategy.signal == 'BUY':
+            buy_signals.append(i)
+        elif strategy.signal == 'SELL':
+            sell_signals.append(i)
+
+        if strategy.dynamic_threshold is not None:
+            dyanmic_thresholds.append(strategy.dynamic_threshold)
+        if strategy.momentum is not None:
+            momentums.append(strategy.momentum)
+        prices.append(open_price)
+
+        if i%100 == 0:
+            print(f'{timestamp} - {symbol} - open_price: {open_price}')
+
+    prices = prices[strategy.momentum_window-1:]
+    timestamps = dataset.index[strategy.momentum_window-1:]
+    if strategy.trade_count == 0:
+        avg_earn = 0.0
+    else:
+        avg_earn = strategy.total_earn / strategy.trade_count
+
+    fig = plot_price_with_signals(symbol, prices, timestamps=timestamps, buy_signals=buy_signals, 
+                            sell_signals=sell_signals, dyanmic_thresholds=dyanmic_thresholds, 
+                            avg_earn=avg_earn, save_root=save_root)
+    
+    
+    save_path = save_root / f'{symbol}-th-{strategy.base_threshold}-len_mw-{strategy.momentum_window}.png'
     fig.savefig(save_path)
+    return avg_earn
+
 
 def test():
     # data
@@ -267,74 +316,81 @@ def test():
     coin_list = [
         'ATAUSDT', 'PEPEUSDT', 'ETHUSDT', 'BTCUSDT', 'BNBUSDT', 'WIFUSDT', 'NEIROUSDT', 'PNUTUSDT', 'FTTUSDT', 'DOGEUSDT'
     ]
-    binance_api = BinanceAPI()
-    ticker_prices = binance_api.get_usdt_ticker(bridge='USDT')
-    coin_list = [coin['symbol'] for coin in ticker_prices]
+    # binance_api = BinanceAPI()
+    # ticker_prices = binance_api.get_usdt_ticker(bridge='USDT')
+    # coin_list = [coin['symbol'] for coin in ticker_prices]
+    coin_list = ['ADAUSDT', 'FUNUSDT']
     
-    start_time = datetime(2024, 1, 1, 0, 0)
-    end_time = datetime(2024, 11, 15, 0, 0)
-    total_time = {}
+    start_time = datetime(2024, 3, 1, 0, 0)
+    end_time = datetime(2024, 4, 1, 0, 0)
     arctic_ops = ArcticDBOperator(url="lmdb://arctic_database", lib_name='Binance')
-    save_root = 'results'
-    save_root = Path(save_root)
-    save_root.mkdir(parents=True, exist_ok=True)
+    save_root = setup_save_root()
+
+
+    base_threshold_list = [0.008]
+    momentum_window_list = [3, 4, 5, 6, 7]
 
     for symbol in coin_list:
-        # TODO: remove this
-        if symbol == 'ETHDOWNUSDT':
-            break
-        # strategy
-        base_threshold = 0.003
         stop_loss = 0.10
-        momentum_window = 5
-        strategy = SimpleMomentumStrategy(
-            base_threshold=base_threshold,
-            stop_loss=stop_loss,
-            momentum_window=momentum_window
-        )
+        earn_matrix = pd.DataFrame(index=[f"mw_{mw}" for mw in momentum_window_list], 
+                                    columns=[f"th_{th}" for th in base_threshold_list])
+        for i, base_threshold in enumerate(base_threshold_list):
+            for j, momentum_window in enumerate(momentum_window_list):
+                strategy = SimpleMomentumStrategy(
+                    base_threshold=base_threshold,
+                    stop_loss=stop_loss,
+                    momentum_window=momentum_window
+                )
 
-        # Read data from database
-        try:
-            arctic_obj = arctic_ops.read(data_name=symbol, start_time=start_time, end_time=end_time)
-        except Exception as e:
-            print(f'Error: {e}')
-            continue
-        dataset = arctic_obj.data
-        prices, dyanmic_thresholds, momentums = [], [], []
-        buy_signals, sell_signals = [], []
-        for i, (timestamp, data) in enumerate(dataset.iterrows()):
-            open_price = float(data['open_price'])
-            strategy.on_new_price(open_price)
-            if strategy.signal == 'BUY':
-                buy_signals.append(i)
-            elif strategy.signal == 'SELL':
-                sell_signals.append(i)
+                # Read data from database
+                try:
+                    arctic_obj = arctic_ops.read(data_name=symbol, start_time=start_time, end_time=end_time)
+                except Exception as e:
+                    print(f'Error: {e}')
+                    continue
+                dataset = arctic_obj.data
 
-            if strategy.dynamic_threshold is not None:
-                dyanmic_thresholds.append(strategy.dynamic_threshold)
-            if strategy.momentum is not None:
-                momentums.append(strategy.momentum)
-            prices.append(open_price)
+                avg_earn = test_once_strategy(symbol, strategy, dataset, save_root=save_root)
+                earn_matrix.iloc[j, i] = avg_earn
 
-            if i%100 == 0:
-                print(f'{timestamp} - {symbol} - open_price: {open_price}')
+        earn_matrix.to_csv(save_root / f'{symbol}_earn_matrix.csv')
 
-        prices = prices[momentum_window-1:]
-        timestamps = dataset.index[momentum_window-1:]
-        if strategy.trade_count == 0:
-            avg_earn = 0.0
-        else:
-            avg_earn = strategy.total_earn / strategy.trade_count
-        plot_price_with_signals(symbol, prices, timestamps=timestamps, buy_signals=buy_signals, 
-                                sell_signals=sell_signals, dyanmic_thresholds=dyanmic_thresholds, 
-                                avg_earn=avg_earn, save_root=save_root)
-        # fig, ax = plt.subplots(1, 1, figsize=(15, 5))
-        # ax.plot(prices, label='price')
-        # ax.plot(dyanmic_thresholds, label='threshold')
-        # ax.plot(momentums, label='momentum')
-        # ax.legend()
-        # plt.show()
-        pass
+        # average earn matrix
+        heatmap_data = np.float32(earn_matrix.values)*100
+        fig, ax = plt.subplots(figsize=(10, 8))
 
+        cax = ax.matshow(heatmap_data, cmap='RdYlGn')
+
+        # Add color bar
+        # TODO: color should be binary linear, means all positive earn should be green, all negative earn should be red
+        fig.colorbar(cax)
+
+        # Set axis labels
+        ax.set_xticks(range(len(earn_matrix.columns)))
+        ax.set_xticklabels(earn_matrix.columns)
+        ax.set_yticks(range(len(earn_matrix.index)))
+        ax.set_yticklabels(earn_matrix.index)
+
+        # Add text
+        for (i, j), val in np.ndenumerate(earn_matrix.values):
+            ax.text(j, i, f'{val*100:.2f} %', ha='center', va='center', color='black')
+
+        # Add grid lines
+        ax.set_xticks(np.arange(len(earn_matrix.columns) + 1) - 0.5, minor=True)
+        ax.set_yticks(np.arange(len(earn_matrix.index) + 1) - 0.5, minor=True)
+        ax.grid(which="minor", color="black", linestyle='-', linewidth=2)
+        ax.tick_params(which="minor", size=0)
+
+        # Rotate the x labels
+        plt.xticks(rotation=45)
+
+        # Add title
+        plt.title(f'Earn Matrix for {symbol}')
+
+        # Save the plot
+        plt.savefig(save_root / f'{symbol}_earn_matrix_plot.png')
+        plt.show()
+        
+        
 if __name__ == '__main__':
     test()
