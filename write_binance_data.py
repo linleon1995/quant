@@ -28,7 +28,11 @@ def format_kline_data(data):
         # end_time = local_tz.localize(end_time).astimezone(pytz.utc)
 
         # TODO: set_index will go wrong if some data missing, then the time and data length can not match.
-        data = data.set_index(pd.date_range(start=start_time, end=end_time, freq='min'))
+        # data = data.set_index(pd.date_range(start=start_time, end=end_time, freq='min'))
+        # time_index = pd.to_datetime(data["open_time"], unit="s")
+        # data.set_index("open_time", inplace=True)
+        data["open_datetime"] = pd.to_datetime(data["open_time"], unit="ms")
+        data = data.set_index("open_datetime")
     return data
 
 
@@ -41,7 +45,8 @@ def write_coin_kline_into_database(arctic_ops, symbol, start_time, end_time=None
     start_time_in_day = int(start_time.timestamp()) * 1000
     binance_date_data = binance_api.get_klines(symbol=symbol, startTime=start_time_in_day)
     start_unix_time_ms = binance_date_data[0][0]
-    start_time = datetime.fromtimestamp(start_unix_time_ms/1000)
+    actual_start_time = datetime.fromtimestamp(start_unix_time_ms/1000)
+    start_time = actual_start_time
     if end_time is None:
         end_time = datetime.now()
 
@@ -59,28 +64,30 @@ def write_coin_kline_into_database(arctic_ops, symbol, start_time, end_time=None
             # print(f'Warning: data is {binance_date_data}')
             # continue
             break
-
+        
         formated_binance_date_data = format_kline_data(binance_date_data)
         arctic_ops.add(symbol, formated_binance_date_data)
 
         current_date += timedelta(minutes=len(formated_binance_date_data))
         elapsed_time = time.time() - st
         print(f'[{symbol}] - {current_date} - elapsed time: {elapsed_time:.2f} s')
+    pass
+
 
 def main():
     coin_list = [
-        'ATAUSDT', 'PEPEUSDT', 'ETHUSDT', 'BTCUSDT', 'BNBUSDT', 'WIFUSDT', 'NEIROUSDT', 'PNUTUSDT'
+        'ADAUSDT', 'WIFUSDT', 'ATAUSDT', 'PEPEUSDT', 'ETHUSDT', 'BTCUSDT', 'BNBUSDT', 'NEIROUSDT', 'PNUTUSDT', 'DOGEUSDT', 'TRUMPUSDT'
     ]
-    # coin_list = [
-    #     'FTTUSDT', 'DOGEUSDT'
-    # ]
     binance_api = BinanceAPI()
-    ticker_prices = binance_api.get_usdt_ticker(bridge='USDT')
-    coin_list = [coin['symbol'] for coin in ticker_prices]
+    coin_list = binance_api.get_symbols()
+    coin_list = [symbol for symbol in coin_list if 'USDT' in symbol and 'UP' not in symbol and 'DOWN' not in symbol]
 
-    start_time = datetime(2024, 1, 1, 0, 0)
-    end_time = datetime(2024, 10, 31, 0, 0)
-    end_time = None
+    # ticker_prices = binance_api.get_usdt_ticker(bridge='USDT')
+    # coin_list2 = [coin['symbol'] for coin in ticker_prices]
+
+    start_time = datetime(2000, 1, 1, 0, 0)
+    # end_time = datetime(2025, 3, 1, 0, 0)
+    # end_time = None
     total_time = {}
     # TODO: BinanceDataManager
     # 若存在資料庫，則不用再寫入，若部分資料缺失，則透過API補上
@@ -93,9 +100,10 @@ def main():
         st = time.time()
         try:
             write_coin_kline_into_database(arctic_ops, symbol=symbol, 
-                                        start_time=start_time, end_time=end_time)
+                                        start_time=start_time)
         except Exception as e:
             error_coin.append(symbol)
+            print(e)
         elapsed_time = time.time() - st
         total_time[symbol] = elapsed_time
 
@@ -103,7 +111,7 @@ def main():
     # arctic_obj = arctic_ops.read(data_name=coin_list[0], start_time=start_time, end_time=end_time)
     # print(arctic_obj.data)
     # print(total_time)
-    print(error_coin)
+    print(f'Error coin: {error_coin}')
 
 if __name__ == '__main__':
     main()
