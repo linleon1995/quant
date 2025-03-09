@@ -4,9 +4,20 @@ import requests
 
 
 class BinanceAPI:
-    def __init__(self, base_url='https://api.binance.com'):
+    def __init__(self, base_url='https://api.binance.com') -> None:
         self.base_url = base_url
 
+    def get_symbols(self) -> list:
+        url = f'{self.base_url}/api/v3/exchangeInfo'
+        response = requests.get(url=url)
+        if response.status_code == 200:
+            data = response.json()
+            symbols = [symbol['symbol'] for symbol in data['symbols']]
+            return symbols
+        else:
+            print("Error:", response.status_code)
+            return []
+        
     # TODO: take care the exceptiion of return data more than 1000 counts.
     def get_klines(self, symbol='BTCUSDT', interval='1m', startTime=None, endTime=None, timeZone='8', limit=1440):
         url = f'{self.base_url}/api/v3/klines'
