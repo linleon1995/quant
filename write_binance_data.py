@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 
 import pandas as pd
 import pytz
+from tqdm import tqdm
 
 from src.binance_api import BinanceAPI
 from src.create_backtest_database import ArcticDBOperator
@@ -40,7 +41,7 @@ def write_coin_kline_into_database(binance_api, arctic_ops, symbol, start_time, 
     print(f'{current_date} - [{symbol}] - second - {start_time} -> {end_time}')
     while current_date <= end_time:
         st = time.time()
-        start_time_in_day = int(x=current_date.timestamp()) * 1000
+        start_time_in_day = int(current_date.timestamp()) * 1000
         binance_date_data = binance_api.get_klines(symbol=symbol, startTime=start_time_in_day)
         # TODO: make the exception right when out of time range or no data return
         if binance_date_data is None or len(binance_date_data) == 0:
@@ -78,7 +79,7 @@ def main():
 
     # Write data into database
     error_coin = []
-    for symbol in coin_list:
+    for symbol in tqdm(coin_list):
         st = time.time()
         try:
             write_coin_kline_into_database(binance_api=binance_api, arctic_ops=arctic_ops, 
