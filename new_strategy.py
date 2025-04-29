@@ -27,7 +27,10 @@ class DynamicBreakoutTrader:
         self.low = None
         self.short_high = None
         self.short_low = None
-        self.short_time_len = 120
+        self.short_time_len = self.lookback * 0.5
+        self.mean_adx = None
+        self.mean_atr = None
+        self.mean_vol = None
         self.trade_records = []
         if self.lookback < self.short_time_len:
             raise ValueError("lookback should be larger than short_time_len")
@@ -35,12 +38,20 @@ class DynamicBreakoutTrader:
     def _calculate_atr(self):
         if len(self.atr_values) < self.atr_period:
             return None
-        return np.mean(self.atr_values)
+        if self.mean_atr is None:
+            self.mean_atr = np.mean(self.atr_values)
+        else:
+            self.mean_atr = (self.mean_atr * (self.atr_period - 1) + self.atr_values[-1]) / self.atr_period
+        return self.mean_atr
     
     def _calculate_adx(self):
         if len(self.adx_values) < self.adx_period:
             return None
-        return np.mean(self.adx_values)
+        if self.mean_adx is None:
+            self.mean_adx = np.mean(self.adx_values)
+        else:
+            self.mean_adx = (self.mean_adx * (self.adx_period - 1) + self.adx_values[-1]) / self.adx_period
+        return self.mean_adx
     
     def on_tick(self, timestamp, data):
         price = float(data['close_price'])
@@ -59,10 +70,10 @@ class DynamicBreakoutTrader:
         if self.low is None:
             self.low = min(self.prices)
 
-        self.high = max(self.high, price)
-        self.low = min(self.low, price)
-        # high = max(self.prices)
-        # low = min(self.prices)
+        # self.high = max(self.high, price)
+        # self.low = min(self.low, price)
+        high = max(self.prices)
+        low = min(self.prices)
         range_size = self.high - self.low
         
         # 計算 ATR
@@ -81,7 +92,11 @@ class DynamicBreakoutTrader:
         dynamic_y = self.low + self.current_atr * self.pr_y if self.current_atr else self.low
         
         # 進場條件：突破上通道 & 成交量確認 & ADX 趨勢強度
-        if price >= dynamic_x and volume > np.mean(list(self.volumes)) and (current_adx is None or current_adx > 25) \
+        if self.mean_vol is None:
+            self.mean_vol = np.mean(list(self.volumes))
+        else:
+            self.mean_vol = (self.mean_vol * (len(self.volumes) - 1) + volume) / len(self.volumes)
+        if price >= dynamic_x and volume > self.mean_vol and (current_adx is None or current_adx > 25) \
             and len(self.positions) <= self.max_trade:
             risk_amount = self.capital * self.max_risk
             position_size = risk_amount / self.current_atr if self.current_atr else 1
