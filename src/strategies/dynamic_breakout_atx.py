@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from collections import deque
 
-class DynamicBreakoutTrader:
+class DynamicBreakoutADX:
     def __init__(self, lookback=14, pr_x=0.8, pr_y=0.7, atr_period=14, max_risk=0.02, leverage=1, adx_period=14):
         self.lookback = lookback  # 天數窗口
         self.pr_x = pr_x  # 進場百分比
@@ -54,6 +54,7 @@ class DynamicBreakoutTrader:
         return self.mean_adx
     
     def on_tick(self, timestamp, data):
+        #TODO: remove dtype change in the future 
         price = float(data['close_price'])
         volume = float(data['volume'])
 
@@ -61,7 +62,7 @@ class DynamicBreakoutTrader:
         self.volumes.append(volume)
         
         if len(self.prices) < self.lookback:
-            return  # 需要足夠的歷史數據
+            return  # need more history data
         
         # 計算唐奇安通道
         # TODO: relatively slow
@@ -69,12 +70,6 @@ class DynamicBreakoutTrader:
             self.high = max(self.prices)
         if self.low is None:
             self.low = min(self.prices)
-
-        # self.high = max(self.high, price)
-        # self.low = min(self.low, price)
-        high = max(self.prices)
-        low = min(self.prices)
-        range_size = self.high - self.low
         
         # 計算 ATR
         if len(self.atr_values) >= 1:
