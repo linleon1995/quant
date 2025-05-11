@@ -3,10 +3,10 @@ import requests
 from datetime import datetime
 
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackContext
 from pprint import pprint
 
-from binance_api import get_binance_ticker_price
+# from src.binance_api import get_binance_ticker_price
 
 # Replace 'YOUR_TOKEN' with the token you obtained from BotFather
 TOKEN = '6041794044:AAHdd2S1CSR9CVhr-TrduVETEUJr3uxbqxU'
@@ -33,7 +33,8 @@ class get_coin_profit:
 
     def get_usdt_ticker(self):
         new_ticker_price = []
-        ticker_price = get_binance_ticker_price()
+        # ticker_price = get_binance_ticker_price()
+        ticker_price = []
         for coin in ticker_price:
             if coin['symbol'].endswith('USDT'):
                 new_ticker_price.append(coin)

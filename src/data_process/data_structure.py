@@ -12,7 +12,7 @@ class BinanceTick:
     low_price: float
     close_price: float
     volume: float
-    close_time: float
+    close_time: int
     quote_asset_volume: float
     number_of_trades: int
     taker_buy_base_asset_volume: float

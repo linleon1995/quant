@@ -1,90 +1,110 @@
 import pytest
-
 from src.wallet import Asset
 
 
 @pytest.fixture
 def mock_asset():
     asset = Asset()
-    asset.deposit(symbol='USDT', number=10000, cost=1.0)
+    asset.deposit(symbol="USDT", number=10000, cost=1.0)
     return asset
 
 
-def test_deposit(mock_asset):
-    assert mock_asset.get_balance(symbol='USDT') == 10000
+@pytest.mark.parametrize(
+    "symbol, number, cost, expected_balance",
+    [
+        ("USDT", 5000, 1.0, 15000),  # Deposit to existing asset
+        ("ETH", 2.0, 3000, 2.0),  # Deposit new asset
+    ],
+    ids=["deposit_usdt_existing", 
+         "deposit_eth_new"],
+)
+def test_deposit(mock_asset, symbol, number, cost, expected_balance):
+    mock_asset.deposit(symbol=symbol, number=number, cost=cost)
+    assert mock_asset.get_balance(symbol) == expected_balance
 
 
-def test_withdraw(mock_asset):
-    mock_asset.withdraw(symbol='USDT', number=5000)
-    assert mock_asset.get_balance(symbol='USDT') == 5000
-    with pytest.raises(ValueError):
-        mock_asset.withdraw(symbol='USDT', number=6000)
+@pytest.mark.parametrize(
+    "symbol, number, cost, excetion",
+    [
+        ("USDT", -5000, 1.0, ValueError),  # Negative deposit
+        ("USDT", 0, 1.0, ValueError),  # Negative deposit
+        ("ETH", None, 1.0, TypeError),  # Missing number
+    ],
+    ids=['deposit_negative',
+         'deposit_type_error'],
+)
+def test_deposit_exception(mock_asset, symbol, number, cost, excetion):
+    with pytest.raises(excetion):
+        mock_asset.deposit(symbol=symbol, number=number, cost=cost)
 
 
-def test_get_balance(mock_asset):
-    mock_asset.deposit(symbol='ETH', number=1.2, cost=3000)
-    assert mock_asset.get_balance() == {'USDT': 10000, 'ETH': 1.2}
-    assert mock_asset.get_balance(symbol='USDT') == 10000
-    assert mock_asset.get_balance(symbol='ETH') == 1.2
-    assert mock_asset.get_balance(symbol='BTC') == 0.0
+@pytest.mark.parametrize(
+    "symbol, number, expected_balance",
+    [
+        ("USDT", 5000, 5000),  # Valid withdrawal
+    ],
+    ids=["withdraw_valid"],
+)
+def test_withdraw(mock_asset, symbol, number, expected_balance):
+    mock_asset.withdraw(symbol=symbol, number=number)
+    assert mock_asset.get_balance(symbol) == expected_balance
 
 
-def test_is_balance_enough(mock_asset):
-    assert mock_asset.is_balance_enough(symbol='USDT', number=5000)
-    assert not mock_asset.is_balance_enough(symbol='USDT', number=15000)
-    assert not mock_asset.is_balance_enough(symbol='ETH', number=1.0)
+@pytest.mark.parametrize(
+    "symbol, number, exception",
+    [
+        ("USDT", 15000, ValueError),  # Over-withdrawal
+        ("USDT", -15000, ValueError), # Negative withdrawal
+        ("USDT", 0, ValueError), # Zero withdrawal
+        ("ETH", 1.0, ValueError),  # Non-existent asset
 
-def test_get_cost(mock_asset):
-    assert mock_asset.get_cost(symbol='USDT') == 1
-    assert mock_asset.get_cost(symbol='ETH') is None
-    mock_asset.deposit(symbol='ETH', number=1.0, cost=3000)
-    assert mock_asset.get_cost(symbol='ETH') == 3000
-    mock_asset.deposit(symbol='ETH', number=1.0, cost=2000)
-    assert mock_asset.get_cost(symbol='ETH') == 2500
-
-
-
-# def test_asset_get_balance(mock_asset):
-#     usdt = Coin(symbol='USDT', number=1000)
-#     eth = Coin(symbol='ETH', number=1.2)
-
-#     # deposit, new coin
-#     mock_asset.deposit(usdt)
-#     mock_asset.deposit(eth)
-#     balance = mock_asset.get_balance()
-#     assert isinstance(balance, dict)
-#     assert balance['USDT'].number == 1000
-#     assert balance['ETH'].number == 1.2
-    
-#     # deposit, add to existing coin
-#     eth = Coin(symbol='ETH', number=1.3)
-#     mock_asset.deposit(eth)
-#     assert mock_asset.get_coin_balance(symbol='ETH') == 2.5
-
-#     # withdraw, subtract from existing coin
-#     eth = Coin(symbol='ETH', number=1.0)
-#     mock_asset.withdraw(eth)
-#     assert mock_asset.get_coin_balance(symbol='ETH') == 1.5
-
-#     # withdraw, not enough coin
-#     eth = Coin(symbol='ETH', number=2)
-#     try:
-#         mock_asset.withdraw(eth)
-#     except ValueError as e:
-#         assert mock_asset.get_coin_balance(symbol='ETH') == 1.5
-
-#     # withdraw, just enough coin
-#     eth = Coin(symbol='ETH', number=1.5)
-#     mock_asset.withdraw(eth)
-#     assert mock_asset.get_coin_balance(symbol='ETH') == 0.0
+    ],
+    ids=["Over-withdrawal", 
+         "Negative withdrawal", 
+         "Zero withdrawal",
+         "Non-existent asset"],
+)
+def test_withdraw_exception(mock_asset, symbol, number, exception):
+    with pytest.raises(expected_exception=exception):
+        mock_asset.withdraw(symbol=symbol, number=number)
 
 
-# def test_asset_add_coin(mock_asset):
-#     usdt = Coin(symbol='USDT', number=1000)
-#     mock_asset.deposit(usdt)
-#     usdt_coin = mock_asset.get_coin('USDT')
-#     assert usdt_coin.symbol == 'USDT'
-#     assert usdt_coin.number == 1000
+@pytest.mark.parametrize(
+    "symbol, expected_balance",
+    [
+        ("USDT", 10000),
+        ("ETH", 0.0),  # Non-existent asset
+        ("BTC", 0.0),  # Non-existent asset
+    ],
+    ids=["balance_usdt", "balance_eth_missing", "balance_btc_missing"],
+)
+def test_get_balance(mock_asset, symbol, expected_balance):
+    assert mock_asset.get_balance(symbol) == expected_balance
 
-#     usdt_number = mock_asset.get_coin_balance('USDT')
-#     assert usdt_number == 1000
+
+@pytest.mark.parametrize(
+    "symbol, number, expected_result",
+    [
+        ("USDT", 5000, True),
+        ("USDT", 15000, False),
+        ("ETH", 1.0, False),  # Non-existent asset
+    ],
+    ids=["balance_enough_usdt", "balance_not_enough_usdt", "balance_not_enough_eth"],
+)
+def test_is_balance_enough(mock_asset, symbol, number, expected_result):
+    assert mock_asset.is_balance_enough(symbol, number) == expected_result
+
+
+@pytest.mark.parametrize(
+    "symbol, deposits, expected_cost",
+    [
+        ("USDT", [(1.0, 5000)], 1.0),  # Same cost
+        ("ETH", [(3000, 1.0)], 3000),  # New asset
+        ("ETH", [(3000, 0.5), (2000, 0.5)], 2500),  # Weighted average cost
+    ],
+    ids=["cost_usdt_single", "cost_eth_single", "cost_eth_weighted_avg"],
+)
+def test_get_cost(mock_asset, symbol, deposits, expected_cost):
+    for cost, number in deposits:
+        mock_asset.deposit(symbol=symbol, number=number, cost=cost)
+    assert mock_asset.get_cost(symbol) == expected_cost

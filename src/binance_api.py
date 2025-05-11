@@ -1,12 +1,25 @@
+import time
+from datetime import datetime, timedelta, timezone
 from typing import List
 
 import requests
 
 
 class BinanceAPI:
-    def __init__(self, base_url='https://api.binance.com'):
+    def __init__(self, base_url='https://api.binance.com') -> None:
         self.base_url = base_url
 
+    def get_symbols(self) -> list:
+        url = f'{self.base_url}/api/v3/exchangeInfo'
+        response = requests.get(url=url)
+        if response.status_code == 200:
+            data = response.json()
+            symbols = [symbol['symbol'] for symbol in data['symbols']]
+            return symbols
+        else:
+            print("Error:", response.status_code)
+            return []
+        
     # TODO: take care the exceptiion of return data more than 1000 counts.
     def get_klines(self, symbol='BTCUSDT', interval='1m', startTime=None, endTime=None, timeZone='8', limit=1440):
         url = f'{self.base_url}/api/v3/klines'
@@ -25,6 +38,43 @@ class BinanceAPI:
             print("Error:", response.status_code)
             return None
 
+    def get_earliest_kline_timestamp(self, symbol, interval="1d"):
+        # Start from 2017-01-01 00:00:00 UTC (Binance start date)
+        start_time = int(datetime(2017, 1, 1).timestamp() * 1000)
+        end_time = int(time.time() * 1000)
+
+        earliest = None
+
+        # Binary search to find earliest available Kline
+        while start_time <= end_time:
+            mid_time = (start_time + end_time) // 2
+            url = f"{self.base_url}/api/v3/klines"
+            params = {
+                "symbol": symbol,
+                "interval": interval,
+                "startTime": mid_time,
+                "limit": 1
+            }
+            r = requests.get(url, params=params)
+            data = r.json()
+
+            if isinstance(data, list) and len(data) > 0:
+                # Data found, move end_time left
+                earliest = data[0][0]
+                end_time = mid_time - 1
+            else:
+                # No data, move start_time right
+                start_time = mid_time + 1
+            time.sleep(0.2)  # Avoid rate limit
+
+        if earliest:
+            dt_utc = datetime.fromtimestamp(earliest / 1000, tz=timezone.utc)
+            dt_local = dt_utc.astimezone(timezone(timedelta(hours=8)))
+            return dt_local
+            # 假設 earliest 是毫秒時間戳
+        else:
+            return None
+        
     def get_ticker_price(self, symbol: str = None, symbols: List = None):
         url = f'{self.base_url}/api/v3/ticker/price'
         params = {
