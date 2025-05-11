@@ -3,8 +3,8 @@ import numpy as np
 
 
 from src.market import Market
-from src.wallet import BaseWallet
-from src.create_backtest_database import ArcticDBOperator
+from src.backtset.wallet import BaseWallet
+from src.data_source.create_backtest_database import ArcticDBOperator
 
 
 @pytest.fixture

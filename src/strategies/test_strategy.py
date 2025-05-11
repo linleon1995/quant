@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from src.binance_api import BinanceAPI
-from src.create_backtest_database import ArcticDBOperator
+from src.data_source.create_backtest_database import ArcticDBOperator
 
 
 class SimpleMomentumStrategy:

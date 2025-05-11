@@ -1,7 +1,7 @@
 import numpy as np
 
 from src.eval.evaluator import Evaluator, Metrics
-from src.wallet import TradeRequest, BaseWallet, Coin
+from src.backtset.wallet import TradeRequest, BaseWallet, Coin
 
 
 def test_eval():

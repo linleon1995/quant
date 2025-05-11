@@ -8,8 +8,8 @@ from typing import Callable, List, Type
 import arcticdb as adb
 from tqdm import tqdm
 
+from src.backtset.wallet import BaseWallet, Coin
 from src.strategies.dynamic_breakout_atx import DynamicBreakoutADX
-from src.wallet import BaseWallet, Coin
 
 
 @dataclass

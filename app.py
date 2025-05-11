@@ -6,9 +6,9 @@ from datetime import datetime
 
 import websockets
 
-from src import Telegram_bot
 from src.client.binance_api import BinanceAPI
 from src.data_process.data_structure import GeneralTickData
+from src.event import telegram_bot
 from src.strategies import moving_average, peak
 from src.utils.utils import draw
 
@@ -68,11 +68,11 @@ async def subscribe_to_klines(websocket, coin_meta_pool, strategy_pool):
             trade_singal = strategy.run(coin_meta_pool[symbol])
             if trade_singal:
                 tradded.add(symbol)
-                Telegram_bot.send_msg(f"{datetime.now()} {strategy.strategy_name} Symbol: {symbol}, Close Price: {close_price}")
+                telegram_bot.send_msg(f"{datetime.now()} {strategy.strategy_name} Symbol: {symbol}, Close Price: {close_price}")
 
         if datetime.now().minute % 30 == 0:
             num_tradded = len(tradded)
-            Telegram_bot.send_msg(f"{datetime.now()} {num_tradded}/{num_coin} tradded coins. {num_tradded/num_coin*100:.2f} % ---")
+            telegram_bot.send_msg(f"{datetime.now()} {num_tradded}/{num_coin} tradded coins. {num_tradded/num_coin*100:.2f} % ---")
 
 
 async def main():

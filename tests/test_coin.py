@@ -1,4 +1,4 @@
-from src.wallet import SingletonCoin
+from src.backtset.wallet import SingletonCoin
 
 def test_coin():
     btc = SingletonCoin('BTC')

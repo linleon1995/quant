@@ -1,6 +1,6 @@
-from src.wallet import BaseWallet
+from src.backtset.wallet import BaseWallet
 
-from src.create_backtest_database import ArcticDBOperator
+from src.data_source.create_backtest_database import ArcticDBOperator
 
 
 # Assuming a singleton implementation for Market
