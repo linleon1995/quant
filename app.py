@@ -1,15 +1,16 @@
-import json
 import asyncio
-import websockets
-from datetime import datetime
+import json
 import time
-
-from src.binance_api import BinanceAPI
-from src.strategies import moving_average, peak
-from src.data_process.data_structure import GeneralTickData
-from src import Telegram_bot
-from src.utils import draw   
 import traceback
+from datetime import datetime
+
+import websockets
+
+from src import Telegram_bot
+from src.client.binance_api import BinanceAPI
+from src.data_process.data_structure import GeneralTickData
+from src.strategies import moving_average, peak
+from src.utils.utils import draw
 
 all_symbols = {}
 tradded = set()

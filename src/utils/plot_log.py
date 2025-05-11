@@ -9,7 +9,7 @@ log = """
 2025-05-11 12:18:46,959 - INFO - 2025-05-11 12:18:59 - ARDRUSDT, Close Price: 0.1036, Ticks: 100, Total Coins: 397
 """
 # Read log from file
-with open('trading_log.log', 'r') as file:
+with open('logs/trading_log.log', 'r') as file:
     log = file.read()
     
 # 1. 讀取並解析 log
