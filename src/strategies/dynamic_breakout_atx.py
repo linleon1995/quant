@@ -1,6 +1,7 @@
-import numpy as np
-import pandas as pd
 from collections import deque
+
+import numpy as np
+
 
 class DynamicBreakoutADX:
     def __init__(self, lookback=14, pr_x=0.8, pr_y=0.7, atr_period=14, max_risk=0.02, leverage=1, adx_period=14):

@@ -2,8 +2,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime
-from pprint import pprint
-from typing import Callable, List, Type
+from typing import List, Type
 
 import arcticdb as adb
 from tqdm import tqdm

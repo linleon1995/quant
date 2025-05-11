@@ -1,7 +1,6 @@
 import asyncio
 import json
 import time
-import traceback
 from datetime import datetime
 
 import websockets
@@ -9,8 +8,7 @@ import websockets
 from src.client.binance_api import BinanceAPI
 from src.data_process.data_structure import GeneralTickData
 from src.event import telegram_bot
-from src.strategies import moving_average, peak
-from src.utils.utils import draw
+from src.strategies import moving_average
 
 all_symbols = {}
 tradded = set()

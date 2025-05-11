@@ -1,5 +1,6 @@
 import yaml
 
+
 class TradingStrategy:
     def __init__(self, config_file):
         self.load_config(config_file)

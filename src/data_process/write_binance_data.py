@@ -3,12 +3,11 @@ from dataclasses import fields
 from datetime import datetime, timedelta
 
 import pandas as pd
-import pytz
 from tqdm import tqdm
 
 from src.binance_api import BinanceAPI
-from src.data_source.create_backtest_database import ArcticDBOperator
 from src.data_process.data_structure import BinanceTick
+from src.data_source.create_backtest_database import ArcticDBOperator
 
 
 # TODO: complete the input, output, and testing

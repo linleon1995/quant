@@ -1,5 +1,5 @@
-import numpy as np
 from collections import deque
+
 
 class DynamicBreakoutTrader:
     def __init__(self, lookback=14, pr_x=0.8, pr_y=0.7, atr_period=14,

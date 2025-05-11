@@ -1,8 +1,6 @@
 from pathlib import Path
 
-import numpy as np
-
-from src.data_process.data_structure import BaseCoinMeta, GeneralTickData
+from src.data_process.data_structure import GeneralTickData
 
 
 class Strategy:

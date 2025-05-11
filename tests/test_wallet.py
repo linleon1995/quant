@@ -1,7 +1,7 @@
-import pytest
 import numpy as np
+import pytest
 
-from src.backtset.wallet import BaseWallet, Coin, TradeRequest, Asset
+from src.backtset.wallet import Asset, BaseWallet, Coin, TradeRequest
 
 
 @pytest.fixture

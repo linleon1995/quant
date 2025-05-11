@@ -1,7 +1,7 @@
-import numpy as np
-import matplotlib.pyplot as plt
 import time
 
+import matplotlib.pyplot as plt
+import numpy as np
 
 if __name__ == '__main__':
     # 设置随机种子，以便结果可重复

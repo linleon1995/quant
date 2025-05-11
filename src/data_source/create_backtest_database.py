@@ -1,7 +1,7 @@
-from datetime import datetime
 
-import pandas as pd
 import arcticdb as adb
+import pandas as pd
+
 
 class ArcticDBOperator:
     def __init__(self, url="lmdb://arctic_database", lib_name="default"):

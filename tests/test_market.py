@@ -1,10 +1,7 @@
 import pytest
-import numpy as np
 
-
-from src.market import Market
-from src.backtset.wallet import BaseWallet
 from src.data_source.create_backtest_database import ArcticDBOperator
+from src.market import Market
 
 
 @pytest.fixture

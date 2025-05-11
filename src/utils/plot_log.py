@@ -1,7 +1,7 @@
+
+import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
-from io import StringIO
 
 log = """
 2025-05-11 12:18:46,761 - INFO - 2025-05-11 12:18:59 - CVCUSDT, Close Price: 0.1185, Ticks: 100, Total Coins: 397

@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-import numpy as np
+
 
 def draw_offset_circles(n=10, radius=1, offset=0.02):
     fig, ax = plt.subplots(figsize=(6,6))

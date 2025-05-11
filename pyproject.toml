@@ -21,3 +21,8 @@ dependencies = [
     "tqdm>=4.67.1",
     "websockets>=15.0.1",
 ]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.2.0",
+]

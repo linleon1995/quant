@@ -1,7 +1,12 @@
-import pytest
 from datetime import datetime
 
-from src.data_process.data_structure import GeneralTickData, BinanceTickProcessor, BinanceTick
+import pytest
+
+from src.data_process.data_structure import (
+    BinanceTick,
+    BinanceTickProcessor,
+    GeneralTickData,
+)
 
 
 @pytest.fixture
