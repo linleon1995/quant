@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 from tqdm import tqdm
 
-from src.binance_api import BinanceAPI
+from src.client.binance_api import BinanceAPI
 from src.data_process.data_structure import BinanceTick
 from src.data_source.create_backtest_database import ArcticDBOperator
 
