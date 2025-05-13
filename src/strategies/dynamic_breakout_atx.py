@@ -4,7 +4,8 @@ import numpy as np
 
 
 class DynamicBreakoutADX:
-    def __init__(self, lookback=14, pr_x=0.8, pr_y=0.7, atr_period=14, max_risk=0.02, leverage=1, adx_period=14):
+    def __init__(self, symbol, lookback=14, pr_x=0.8, pr_y=0.7, atr_period=14, max_risk=0.02, leverage=1, adx_period=14):
+        self.symbol = symbol
         self.lookback = lookback  # 天數窗口
         self.pr_x = pr_x  # 進場百分比
         self.pr_y = pr_y  # 停損百分比
@@ -92,13 +93,13 @@ class DynamicBreakoutADX:
             self.mean_vol = np.mean(list(self.volumes))
         else:
             self.mean_vol = (self.mean_vol * (len(self.volumes) - 1) + volume) / len(self.volumes)
-        if price >= dynamic_x and volume > self.mean_vol and (current_adx is None or current_adx > 25) \
-            and len(self.positions) <= self.max_trade:
+        if (price >= dynamic_x and
+            len(self.positions) < self.max_trade):
             risk_amount = self.capital * self.max_risk
             position_size = risk_amount / self.current_atr if self.current_atr else 1
             position_size *= self.leverage
             self.positions.append({'entry': price, 'size': position_size, 'entry_time': timestamp})
-            print(f"{timestamp} BUY at {price}, size {position_size}, ADX {current_adx}")
+            print(f"{timestamp} {self.symbol} BUY at {price}, size {position_size}, ADX {current_adx}")
         
         # 出場條件
         # TODO: sell strategy
@@ -117,13 +118,13 @@ class DynamicBreakoutADX:
             if price < self.short_high * (1-drawback) \
                 and (timestamp - pos['entry_time']).total_seconds() / 60 > stop_trade_time_len \
                 and price > pos['entry']:
-                print(f"{timestamp} EXIT WIN at {price}, size {pos['size']}")
+                print(f"{timestamp} {self.symbol} EXIT WIN at {price}, size {pos['size']}")
                 earn = (price - pos['entry']) / pos['entry'] * pos['size']
                 self.trade_records.append({'earn': earn, 'entry': pos['entry'], 'exit': price, 
                                            'size': pos['size'], 'entry_time': pos['entry_time'], 'exit_time': timestamp})
                 self.positions.remove(pos)
             elif price < self.short_low * (1-drawback):
-                print(f"{timestamp} EXIT LOSS at {price}, size {pos['size']}")
+                print(f"{timestamp} {self.symbol} EXIT LOSS at {price}, size {pos['size']}")
                 earn = (price - pos['entry']) / pos['entry'] * pos['size']
                 self.trade_records.append({'earn': earn, 'entry': pos['entry'], 'exit': price, 
                                            'size': pos['size'], 'entry_time': pos['entry_time'], 'exit_time': timestamp})
