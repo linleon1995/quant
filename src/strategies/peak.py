@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from scipy.signal import find_peaks
 import numpy as np
+from scipy.signal import find_peaks
 
 
 class Strategy:

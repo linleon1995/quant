@@ -1,5 +1,6 @@
 import pytest
-from src.wallet import Asset
+
+from src.backtset.wallet import Asset
 
 
 @pytest.fixture

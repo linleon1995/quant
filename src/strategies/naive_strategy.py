@@ -1,4 +1,5 @@
-from src.wallet import TradeRequest
+from src.backtset.wallet import TradeRequest
+
 
 class NaiveStrategy:
     def __init__(self, buy_rate: float, sell_rate: float, trade_unit: float):

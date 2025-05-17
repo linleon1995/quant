@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 
 from src.fin_index.index import bollinger_band, once_bollinger_band

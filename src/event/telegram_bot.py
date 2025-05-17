@@ -1,10 +1,9 @@
 import time
-import requests
 from datetime import datetime
 
+import requests
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackContext
-from pprint import pprint
+from telegram.ext import CallbackContext, CommandHandler, MessageHandler, Updater
 
 # from src.binance_api import get_binance_ticker_price
 

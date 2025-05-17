@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from collections import deque
 from typing import List, Optional
 
 import numpy as np

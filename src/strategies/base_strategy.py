@@ -1,4 +1,4 @@
-from statemachine import StateMachine, State
+from statemachine import State, StateMachine
 
 from src.data_process.data_structure import GeneralTickData
 

@@ -1,16 +1,14 @@
 import csv
 import logging
-import os
 import pathlib
 import zipfile
-from dataclasses import fields, dataclass
-from datetime import datetime, timedelta, timezone
+from dataclasses import dataclass, fields
 
 # from write_binance_data import format_kline_data
 import pandas as pd
-from tqdm import tqdm
 
-from src.create_backtest_database import ArcticDBOperator
+from src.data_source.create_backtest_database import ArcticDBOperator
+
 # from src.data_process.data_structure import BinanceTick # TODO: replace by the one in write_data.py
 
 # 假設你已經有 arctic_ops

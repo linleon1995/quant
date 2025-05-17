@@ -2,14 +2,13 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime
-from pprint import pprint
-from typing import Callable, List, Type
+from typing import List, Type
 
 import arcticdb as adb
 from tqdm import tqdm
 
-from src.strategies.dynamic_breakout_atx import DynamicBreakoutADX
-from src.wallet import BaseWallet, Coin
+from src.backtset.wallet import BaseWallet, Coin
+from src.strategies.dynamic_breakout_atx import DynamicBreakoutTrader
 
 
 @dataclass
@@ -31,7 +30,7 @@ def run_backtest(
     lib = adb.Arctic("lmdb://arctic_database")['BinanceSpot']
     DBobject = lib.read(symbol, date_range=(start, end))
 
-    strategy = strategy_cls(lookback=lookback)
+    strategy = strategy_cls(lookback=lookback, symbol=symbol)
     wallet = BaseWallet()
     wallet.deposit(Coin(symbol='USDT', number=usdt_balance, cost=1))
 
@@ -53,7 +52,7 @@ def main():
     start_time = datetime.fromisoformat(args.start)
     end_time = datetime.fromisoformat(args.end)
 
-    strategy_cls = DynamicBreakoutADX  # ✅ 這裡可以改成別的策略 class
+    strategy_cls = DynamicBreakoutTrader  # ✅ 這裡可以改成別的策略 class
 
     st = time.time()
     results = []

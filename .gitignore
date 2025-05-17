@@ -8,3 +8,9 @@ arctic_database/
 __pycache__/
 
 downloads/
+
+data/
+
+results/
+
+logs/
