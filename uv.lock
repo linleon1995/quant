@@ -378,6 +378,15 @@ wheels = [
 ]
 
 [[package]]
+name = "kafka-python"
+version = "2.2.7"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/33/64/c200f0ee131415a8869ff6a7485831a82f62e87375e1b7cbec8340fd7be5/kafka_python-2.2.7.tar.gz", hash = "sha256:c3527d3543c5c932c8cec86726d2f7625c4cb059e9a6ad483088d007a6f66913", size = 345394, upload-time = "2025-05-13T18:06:08.715Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9b/61/2d0b16aff7c53f1f1a09e9d32bce7098950c96bfc4e3b9a785d34e637317/kafka_python-2.2.7-py2.py3-none-any.whl", hash = "sha256:b3d5e094b06a6e0755f30feb8f164b290a646256e9d4f302e385121ba3312bc1", size = 308477, upload-time = "2025-05-13T18:06:06.219Z" },
+]
+
+[[package]]
 name = "kiwisolver"
 version = "1.4.8"
 source = { registry = "https://pypi.org/simple" }
@@ -930,6 +939,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "arcticdb" },
     { name = "ipython" },
+    { name = "kafka-python" },
     { name = "matplotlib" },
     { name = "numpy" },
     { name = "pandas" },
@@ -954,6 +964,7 @@ dev = [
 requires-dist = [
     { name = "arcticdb", specifier = ">=5.4.1" },
     { name = "ipython", specifier = ">=9.2.0" },
+    { name = "kafka-python", specifier = ">=2.2.7" },
     { name = "matplotlib", specifier = ">=3.10.3" },
     { name = "numpy", specifier = ">=2.2.5" },
     { name = "pandas", specifier = ">=2.2.3" },

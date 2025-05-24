@@ -90,7 +90,7 @@ def parse_args():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--coins', nargs='*', help='List of coin symbols (default: all)')
-    parser.add_argument('--start', type=str, default='2025-01-01T00:00', help='Start time (ISO format)')
+    parser.add_argument('--start', type=str, default='2024-09-01T00:00', help='Start time (ISO format)')
     parser.add_argument('--end', type=str, default='2025-03-30T00:00', help='End time (ISO format)')
     parser.add_argument('--lookback', type=int, default=60, help='Lookback window for strategy')
     parser.add_argument('--usdt', type=float, default=10000, help='Initial USDT balance')
