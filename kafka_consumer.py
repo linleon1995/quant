@@ -52,5 +52,6 @@ def consume_kafka_messages():
         except KeyError as e:
             logging.warning(f"Incomplete data in message: {raw_data}")
 
+
 if __name__ == "__main__":
     consume_kafka_messages()

@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import time
 from datetime import datetime
 
 import requests
@@ -9,7 +10,7 @@ from kafka import KafkaProducer
 from kafka.admin import KafkaAdminClient, NewTopic
 
 # logging.basicConfig(level=logging.INFO)
-logging.basicConfig(filename='logs/new_producer.log', level=logging.DEBUG, 
+logging.basicConfig(filename='logs/binanace_producer.log', level=logging.INFO, 
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 KAFKA_BOOTSTRAP_SERVERS = ['localhost:29092']
@@ -58,7 +59,7 @@ class BinanceKafkaProducerWorker:
                     symbol = data['s']
                     kline = data['k']
                     timestamp = datetime.fromtimestamp(kline['T'] / 1000).strftime('%Y-%m-%d %H:%M:%S')
-
+                    
                     if self.last_timestamps.get(symbol) == timestamp:
                         continue
                     self.last_timestamps[symbol] = timestamp
@@ -69,6 +70,7 @@ class BinanceKafkaProducerWorker:
                         'close_price': float(kline['c']),
                         'volume': float(kline['v']),
                     }
+                    logging.info(tick)
 
                     self.producer.send(KAFKA_TOPIC, key=symbol, value=tick)
                     logging.debug(f"Sent: {tick}")
@@ -94,8 +96,6 @@ class BinanceKafkaProducerManager:
     async def start_all(self):
         tasks = []
         for idx, chunk in enumerate(self.chunk_symbols(STREAMS_PER_WS)):
-            if idx < 1:
-                continue
             worker = BinanceKafkaProducerWorker(chunk, self.producer)
             tasks.append(worker.run())
         await asyncio.gather(*tasks)
@@ -108,14 +108,9 @@ def main():
     response = requests.get(url)
     data = response.json()
     symbols = [
-        symbol_info['symbol']
+        f"{symbol_info['symbol'].lower()}@kline_1m"
         for symbol_info in data['symbols']
         if symbol_info['symbol'].endswith('USDT') and symbol_info['status'] == 'TRADING'
-    ]
-    symbols = [
-        "btcusdt@kline_1m",
-        "ethusdt@kline_1m",
-        # 你想要的其他幣種
     ]
 
     logging.info(f"Total symbols: {len(symbols)}")
