@@ -10,11 +10,12 @@ from src.client.binance_api import BinanceAPI
 from src.data_process.data_structure import GeneralTickData
 from src.event import telegram_bot
 from src.strategies import moving_average
+from src.strategies.dynamic_breakout_atx import DynamicBreakoutTrader
 
 all_symbols = {}
 tradded = set()
 
-logging.basicConfig(filename='trading_log.log', level=logging.INFO, 
+logging.basicConfig(filename='logs/trading_log.log', level=logging.INFO, 
             format='%(asctime)s - %(levelname)s - %(message)s')
 
 async def connect_to_websocket(uri, symbols, id, coin_meta_pool, strategy_pool):
@@ -50,6 +51,7 @@ async def subscribe_to_klines(websocket, coin_meta_pool, strategy_pool):
             coin_meta_pool[symbol] = GeneralTickData(
                 symbol, maxlen=100, moving_average_spans=[7, 25, 99])
         close_price = float(response_data['k']['c'])
+        volume = float(response_data['k']['v'])
         
         if all_symbols.get(symbol, '') != response_data['k']['T']:
             all_symbols[symbol] = response_data['k']['T']
@@ -60,9 +62,9 @@ async def subscribe_to_klines(websocket, coin_meta_pool, strategy_pool):
             continue
 
         num_coin = len(all_symbols)
-        readable_time = datetime.fromtimestamp(response_data['k']['T'] / 1000).strftime('%Y-%m-%d %H:%M:%S')
-        logging.info(f"{readable_time} - {symbol}, Close Price: {close_price}, Ticks: {len(coin_meta_pool[symbol].ticks)}, Total Coins: {num_coin}")
-        
+        timestamp = datetime.fromtimestamp(response_data['k']['T'] / 1000)
+        logging.info(f"{timestamp} - {symbol}, Close Price: {close_price}, Ticks: {len(coin_meta_pool[symbol].ticks)}, Total Coins: {num_coin}")
+
         # if not coin_meta_pool[symbol].isValid:
         #     continue
 
@@ -70,11 +72,22 @@ async def subscribe_to_klines(websocket, coin_meta_pool, strategy_pool):
         #     trade_singal = strategy.run(coin_meta_pool[symbol])
         #     if trade_singal:
         #         tradded.add(symbol)
-        #         Telegram_bot.send_msg(f"{datetime.now()} {strategy.strategy_name} Symbol: {symbol}, Close Price: {close_price}")
+        #         telegram_bot.send_msg(f"{datetime.now()} {strategy.strategy_name} Symbol: {symbol}, Close Price: {close_price}")
 
         # if datetime.now().minute % 30 == 0:
         #     num_tradded = len(tradded)
-        #     Telegram_bot.send_msg(f"{datetime.now()} {num_tradded}/{num_coin} tradded coins. {num_tradded/num_coin*100:.2f} % ---")
+        #     telegram_bot.send_msg(f"{datetime.now()} {num_tradded}/{num_coin} tradded coins. {num_tradded/num_coin*100:.2f} % ---")
+
+        tick = (timestamp, {'close_price': close_price, 'volume': volume})
+        strategy_pool[symbol].on_tick(*tick)
+        # collected.append(symbol)
+        # if timestamp.second:
+        if timestamp.minute % 10 == 0:
+            avg_earn = 0
+            for symbol, strategy in strategy_pool.items():
+                total_earn = sum(trade['earn'] for trade in strategy.trade_records)
+                avg_earn += total_earn
+            telegram_bot.send_msg(f"{datetime.now()} {strategy_pool.keys()} {avg_earn/len(strategy_pool)} %")
 
 
 async def main():
@@ -84,7 +97,7 @@ async def main():
     binance_api = BinanceAPI()
     ticker_prices = binance_api.get_usdt_ticker(bridge='USDT')
     symbols = [f"{coin['symbol'].lower()}@kline_1m" for idx, coin in enumerate(ticker_prices)]
-    symbols = symbols[:10]
+    symbols = symbols[:2]
     # symbols = symbols[6:7]
     total_symbols = [coin['symbol'] for idx, coin in enumerate(ticker_prices)]
     # symbols = ['idexusdt@kline_1m', 'minausdt@kline_1m', 'ardrusdt@kline_1m', 'nbtusdt@kline_1m', 'fidausdt@kline_1m', 'sysusdt@kline_1m']
@@ -103,6 +116,8 @@ async def main():
     )
     strategy_pool = [ma_strategy]
     for idx in range(0, len(symbols), stream_per_task):
+        strategy_pool = {symbol.split('@')[0].upper(): DynamicBreakoutTrader(symbol=symbol.split('@')[0].upper()) 
+                         for symbol in symbols[idx:idx+stream_per_task]}
         tasks.append(connect_to_websocket(uri, symbols[idx:idx+stream_per_task], idx, coin_meta_pool, strategy_pool))
         
     await asyncio.gather(*tasks, return_exceptions=False)
