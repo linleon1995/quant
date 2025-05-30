@@ -10,7 +10,8 @@ from src.client.binance_api import BinanceAPI
 from src.data_process.data_structure import GeneralTickData
 from src.event import telegram_bot
 from src.strategies import moving_average
-from src.strategies.dynamic_breakout_atx import DynamicBreakoutTrader
+# from src.strategies.dynamic_breakout_atx import DynamicBreakoutTrader # Replaced by DemoRLStrategy
+from src.strategies.demo_rl_strategy import DemoRLStrategy
 
 all_symbols = {}
 tradded = set()
@@ -78,16 +79,38 @@ async def subscribe_to_klines(websocket, coin_meta_pool, strategy_pool):
         #     num_tradded = len(tradded)
         #     telegram_bot.send_msg(f"{datetime.now()} {num_tradded}/{num_coin} tradded coins. {num_tradded/num_coin*100:.2f} % ---")
 
-        tick = (timestamp, {'close_price': close_price, 'volume': volume})
-        strategy_pool[symbol].on_tick(*tick)
+        # tick = (timestamp, {'close_price': close_price, 'volume': volume}) # Original on_tick call data
+        # strategy_pool[symbol].on_tick(*tick) # Original on_tick call for DynamicBreakoutTrader
+
+        symbol_key = response_data['s'] # This is the 'BTCUSDT' style key
+        if symbol_key in strategy_pool:
+            current_general_tick_data = coin_meta_pool[symbol_key]
+            # Ensure current_general_tick_data is not None and is valid if necessary
+            if current_general_tick_data and getattr(current_general_tick_data, 'isValid', True): # Assuming isValid or similar check
+                trade_signal = strategy_pool[symbol_key].decide_action(current_general_tick_data)
+                
+                # Log the signal
+                logging.info(f"RL Strategy ({strategy_pool[symbol_key].__class__.__name__}) signal for {symbol_key}: {trade_signal} at price {close_price}")
+
+                if trade_signal in ["BUY", "SELL"]:
+                    # Ensure telegram_bot is imported and configured if this line is to work
+                    try:
+                        telegram_bot.send_msg(f"{datetime.now()} RL_DEMO Symbol: {symbol_key}, Signal: {trade_signal}, Price: {close_price}, Model: {strategy_pool[symbol_key].model_path}")
+                    except Exception as e:
+                        logging.error(f"Failed to send Telegram message: {e}")
+            else:
+                logging.warning(f"GeneralTickData for {symbol_key} is not valid or not found for RL strategy.")
+        else:
+            logging.warning(f"No strategy found in strategy_pool for symbol key: {symbol_key}")
+
         # collected.append(symbol)
         # if timestamp.second:
-        if timestamp.minute % 10 == 0:
-            avg_earn = 0
-            for symbol, strategy in strategy_pool.items():
-                total_earn = sum(trade['earn'] for trade in strategy.trade_records)
-                avg_earn += total_earn
-            telegram_bot.send_msg(f"{datetime.now()} {strategy_pool.keys()} {avg_earn/len(strategy_pool)} %")
+        # if timestamp.minute % 10 == 0: # Commenting out earnings report as DemoRLStrategy doesn't have trade_records
+            # avg_earn = 0
+            # for symbol, strategy in strategy_pool.items():
+            #     total_earn = sum(trade['earn'] for trade in strategy.trade_records)
+            #     avg_earn += total_earn
+            # telegram_bot.send_msg(f"{datetime.now()} {strategy_pool.keys()} {avg_earn/len(strategy_pool)} %")
 
 
 async def main():
@@ -109,15 +132,34 @@ async def main():
     # tasks = [subscribe_to_klines(uri, [symbol], id) for id, symbol in enumerate(symbols, 1)]
     tasks = []
     coin_meta_pool = {}
-    ma_strategy = moving_average.Strategy(
-        ma_gap_rates=[1.008, 1.008],
-        ma_grow_rates=[1.0005, 1.0005, 1.0005],
-        count_threshold=5
-    )
-    strategy_pool = [ma_strategy]
+    # ma_strategy = moving_average.Strategy(
+    #     ma_gap_rates=[1.008, 1.008],
+    #     ma_grow_rates=[1.0005, 1.0005, 1.0005],
+    #     count_threshold=5
+    # )
+    # strategy_pool = [ma_strategy] # Old strategy pool
+    
+    # Correct initialization of strategy_pool for all symbols to be processed
+    processed_symbols_list = symbols # Use the actual list of symbols being processed by websockets
+    
+    strategy_pool = {
+        s.split('@')[0].upper(): DemoRLStrategy() 
+        for s in processed_symbols_list
+    }
+    # coin_meta_pool = {} # Already initialized above tasks = []
+
+    # Then, when creating tasks:
     for idx in range(0, len(symbols), stream_per_task):
-        strategy_pool = {symbol.split('@')[0].upper(): DynamicBreakoutTrader(symbol=symbol.split('@')[0].upper()) 
-                         for symbol in symbols[idx:idx+stream_per_task]}
+        # The strategy_pool and coin_meta_pool passed to connect_to_websocket 
+        # are the global ones, containing all symbols.
+        # The symbols[idx:idx+stream_per_task] argument tells that specific websocket connection
+        # which streams to subscribe to.
+        # The old code was:
+        # strategy_pool = {symbol.split('@')[0].upper(): DynamicBreakoutTrader(symbol=symbol.split('@')[0].upper()) 
+        #                  for symbol in symbols[idx:idx+stream_per_task]}
+        # tasks.append(connect_to_websocket(uri, symbols[idx:idx+stream_per_task], idx, coin_meta_pool, strategy_pool))
+        # The strategy_pool was passed as a chunk, which is problematic if it needs to be global.
+        # Now passing the global strategy_pool and coin_meta_pool.
         tasks.append(connect_to_websocket(uri, symbols[idx:idx+stream_per_task], idx, coin_meta_pool, strategy_pool))
         
     await asyncio.gather(*tasks, return_exceptions=False)

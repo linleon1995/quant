@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import os
 from datetime import datetime
 
 import requests
@@ -12,7 +13,6 @@ from kafka.admin import KafkaAdminClient, NewTopic
 logging.basicConfig(filename='logs/new_producer.log', level=logging.DEBUG, 
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
-KAFKA_BOOTSTRAP_SERVERS = ['localhost:29092']
 KAFKA_TOPIC = 'binance_kline'
 BINANCE_WS_URI = "wss://stream.binance.com:9443/ws"
 STREAMS_PER_WS = 100
@@ -82,7 +82,7 @@ class BinanceKafkaProducerManager:
     def __init__(self, symbols: list[str]):
         self.symbols = symbols
         self.producer = KafkaProducer(
-            bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
+            bootstrap_servers=os.getenv("KAFKA_BROKERS", "localhost:29092").split(','),
             key_serializer=lambda k: k.encode('utf-8'),
             value_serializer=lambda v: json.dumps(v).encode('utf-8')
         )
@@ -94,29 +94,27 @@ class BinanceKafkaProducerManager:
     async def start_all(self):
         tasks = []
         for idx, chunk in enumerate(self.chunk_symbols(STREAMS_PER_WS)):
-            if idx < 1:
-                continue
             worker = BinanceKafkaProducerWorker(chunk, self.producer)
             tasks.append(worker.run())
         await asyncio.gather(*tasks)
 
 
 def main():
-    create_kafka_topic(KAFKA_TOPIC, KAFKA_BOOTSTRAP_SERVERS)
+    create_kafka_topic(KAFKA_TOPIC, os.getenv("KAFKA_BROKERS", "localhost:29092").split(','))
 
     url = "https://api.binance.com/api/v3/exchangeInfo"
     response = requests.get(url)
     data = response.json()
     symbols = [
-        symbol_info['symbol']
+        f"{symbol_info['symbol'].lower()}@kline_1m"
         for symbol_info in data['symbols']
         if symbol_info['symbol'].endswith('USDT') and symbol_info['status'] == 'TRADING'
     ]
-    symbols = [
-        "btcusdt@kline_1m",
-        "ethusdt@kline_1m",
-        # 你想要的其他幣種
-    ]
+    # symbols = [
+    #     "btcusdt@kline_1m",
+    #     "ethusdt@kline_1m",
+    #     # 你想要的其他幣種
+    # ]
 
     logging.info(f"Total symbols: {len(symbols)}")
 

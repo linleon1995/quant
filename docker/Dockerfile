@@ -18,7 +18,7 @@ RUN uv --version
 
 # Copy project files
 COPY pyproject.toml .
-
+COPY . .
 
 # Now, use uv to install your project's dependencies
 # The command for installing dependencies from a lock file is:

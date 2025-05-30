@@ -45,15 +45,19 @@ services:
     depends_on:
       - kafka
 
-  # producer:
-  #   build: .
-  #   container_name: binance_producer
-  #   volumes:
-  #     - .:/app
-  #   command: python data_source/binance_producer.py
-  #   restart: unless-stopped
-  #   depends_on:
-  #     - kafka
+  producer:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: binance_producer
+    volumes:
+      - ./logs:/app/logs
+    command: python src/data_source/binanace_producer.py
+    restart: unless-stopped
+    environment:
+      - KAFKA_BROKERS=kafka:9092
+    depends_on:
+      - kafka
 
 volumes:
   kafka_data:

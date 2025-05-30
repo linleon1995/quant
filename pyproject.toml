@@ -9,6 +9,7 @@ dependencies = [
     "ipython>=9.2.0",
     "kafka-python>=2.2.7",
     "matplotlib>=3.10.3",
+    "onnxruntime>=1.18.0", # Added onnxruntime
     "numpy>=2.2.5",
     "pandas>=2.2.3",
     "pprintpp>=0.4.0",
