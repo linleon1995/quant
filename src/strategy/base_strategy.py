@@ -56,7 +56,6 @@ class TestStateMachine(StateMachine):
     s1 = State()
     s2 = State()
     s3 = State()
-    s4 = State()
 
     steady = (
         s0.to(s1, cond='price_stable')
@@ -75,11 +74,7 @@ class TestStateMachine(StateMachine):
         s3.to(s0, cond='sell_complete')
         | s3.to(s3, unless='sell_complete')
     )
-    sell = (
-        s4.to(s0, cond='sell_complete')
-        | s4.to(s4, unless='sell_complete')
-    )
-    run = steady | rampup | buy | break_last_low | sell
+    run = steady | rampup | buy | break_last_low
 
     def __init__(self, data_queue: GeneralTickData):
         self.data_queue = data_queue
@@ -101,24 +96,47 @@ class TestStateMachine(StateMachine):
             raise ValueError('Invalid trade response.')
 
     # TODO: std, time range to decide, consider Bollinger Bands
-    def price_stable(self): 
-        latest_price = self.data_queue.latest_price
-        upper_bound = self.data_queue.bollinger_band.upper_bound
-        lower_bound = self.data_queue.bollinger_band.lower_bound
-        if latest_price < upper_bound and upper_bound > lower_bound:
-            self.stable_count += 1
+    def price_stable(self):
+        if not self.data_queue.ticks:
+            return False
+        latest_price = self.data_queue.ticks[-1]
+
+        # Check if bollinger_band attribute exists and has the required sub-attributes
+        if hasattr(self.data_queue, 'bollinger_band') and \
+           hasattr(self.data_queue.bollinger_band, 'upper_bound') and \
+           hasattr(self.data_queue.bollinger_band, 'lower_bound'):
+            upper_bound = self.data_queue.bollinger_band.upper_bound
+            lower_bound = self.data_queue.bollinger_band.lower_bound
+            if latest_price < upper_bound and latest_price > lower_bound: # Corrected condition: price should be WITHIN bounds
+                self.stable_count += 1
+            else:
+                self.stable_count = 0
         else:
+            # If no bollinger_band data, cannot determine stability based on it.
+            # Option: treat as not stable, or use another logic. For now, not stable.
             self.stable_count = 0
-        if self.stable_count > 120:
+            # Or, if some default behavior is desired without BB:
+            # self.stable_count += 1 # Example: assume stable if no BB info
+
+        if self.stable_count > 120: # Hardcoded, was previously stable_length in test
             return True
         else:
             return False
     
     def price_rising(self):
-        if self.data_queue.slope > 0.1:
-            return True
-        else:
+        if not self.data_queue.ticks or len(self.data_queue.ticks) < 2: # Need at least two points for a slope
             return False
+        # This is a placeholder for slope. GeneralTickData doesn't have 'slope'.
+        # Assuming self.data_queue.moving_average_data_pool might be used.
+        # For example, compare short MA to long MA, or check slope of an MA.
+        # Let's use a simple price change for now if slope is not available.
+        if hasattr(self.data_queue, 'slope'): # Ideal case
+            if self.data_queue.slope > 0.1:
+                return True
+        elif len(self.data_queue.ticks) >= 2: # Fallback to simple price change
+             if self.data_queue.ticks[-1] > self.data_queue.ticks[-2]: # Price increased
+                 return True
+        return False
     
     def buy_complete(self):
         self.buy_success = False

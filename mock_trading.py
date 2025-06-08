@@ -4,7 +4,7 @@ from datetime import datetime
 
 from kafka import KafkaConsumer
 
-from src.strategies.dynamic_breakout_atx import DynamicBreakoutTrader
+from src.strategy.dynamic_breakout_atx import DynamicBreakoutTrader
 from src.event import telegram_bot
 
 KAFKA_BOOTSTRAP_SERVERS = ['localhost:29092']

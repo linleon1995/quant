@@ -9,8 +9,8 @@ import websockets
 from src.client.binance_api import BinanceAPI
 from src.data_process.data_structure import GeneralTickData
 from src.event import telegram_bot
-from src.strategies import moving_average
-from src.strategies.dynamic_breakout_atx import DynamicBreakoutTrader
+from src.strategy import moving_average
+from src.strategy.dynamic_breakout_atx import DynamicBreakoutTrader
 
 all_symbols = {}
 tradded = set()

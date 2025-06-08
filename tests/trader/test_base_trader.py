@@ -1,8 +1,8 @@
-import unittest
+import pytest
 from abc import ABC, abstractmethod
 from src.trader.base_trader import BaseTrader
 
-class TestBaseTrader(unittest.TestCase):
+class TestBaseTrader:
 
     def test_inheritance_without_implementation(self):
         """
@@ -11,7 +11,7 @@ class TestBaseTrader(unittest.TestCase):
         """
         class IncompleteTrader(BaseTrader):
             pass
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             IncompleteTrader()
 
     def test_inheritance_with_partial_implementation(self):
@@ -23,7 +23,7 @@ class TestBaseTrader(unittest.TestCase):
             def buy(self, symbol: str, amount: float):
                 return super().buy(symbol, amount)
             # Missing sell, get_balance, get_positions
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             PartiallyCompleteTrader()
 
     def test_inheritance_with_full_implementation(self):
@@ -44,17 +44,14 @@ class TestBaseTrader(unittest.TestCase):
         try:
             CompleteTrader()
         except TypeError:
-            self.fail("CompleteTrader should be instantiable but raised TypeError.")
+            pytest.fail("CompleteTrader should be instantiable but raised TypeError.")
 
     def test_abstract_methods_signature(self):
         """
         Checks if abstract methods are defined in BaseTrader.
         This is more of a structural check.
         """
-        self.assertTrue(hasattr(BaseTrader, 'buy') and getattr(BaseTrader.buy, '__isabstractmethod__', False))
-        self.assertTrue(hasattr(BaseTrader, 'sell') and getattr(BaseTrader.sell, '__isabstractmethod__', False))
-        self.assertTrue(hasattr(BaseTrader, 'get_balance') and getattr(BaseTrader.get_balance, '__isabstractmethod__', False))
-        self.assertTrue(hasattr(BaseTrader, 'get_positions') and getattr(BaseTrader.get_positions, '__isabstractmethod__', False))
-
-if __name__ == '__main__':
-    unittest.main()
+        assert hasattr(BaseTrader, 'buy') and getattr(BaseTrader.buy, '__isabstractmethod__', False)
+        assert hasattr(BaseTrader, 'sell') and getattr(BaseTrader.sell, '__isabstractmethod__', False)
+        assert hasattr(BaseTrader, 'get_balance') and getattr(BaseTrader.get_balance, '__isabstractmethod__', False)
+        assert hasattr(BaseTrader, 'get_positions') and getattr(BaseTrader.get_positions, '__isabstractmethod__', False)

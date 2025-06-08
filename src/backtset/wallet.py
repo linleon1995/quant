@@ -61,6 +61,13 @@ class Coin:
     cost: float = None
 
     def add_balance(self, number, cost) -> None:
+        if not isinstance(number, (int, float)) or not isinstance(cost, (int, float)):
+            raise TypeError("Number and cost must be numeric.")
+        if number <= 0:
+            raise ValueError("Deposit number must be positive.")
+        if cost <= 0:
+            raise ValueError("Deposit cost must be positive.")
+
         if self.number == 0:
             self.number = number
             self.cost = cost
@@ -73,6 +80,11 @@ class Coin:
             self.number += number
 
     def subtract_balance(self, number) -> None:
+        if not isinstance(number, (int, float)):
+            raise TypeError("Withdrawal number must be numeric.")
+        if number <= 0:
+            raise ValueError("Withdrawal number must be positive.")
+
         if number <= self.number:
             self.number -= number
             if self.number == 0:
@@ -176,7 +188,18 @@ class BaseWallet:
         elif trade_signal.action == 'sell':
             if self.check_balance(symbol=trade_signal.symbol, number=trade_signal.number):
                 self.asset.withdraw(symbol=trade_signal.symbol, number=trade_signal.number)
-                coin = Coin(symbol=trade_signal.bridgecoin_name, number=trade_signal.price * trade_signal.number, cost=trade_signal.price)
+
+                bridge_coin_deposit_cost = 1.0 # Default for stablecoins like USDT
+                if trade_signal.bridgecoin_name != 'USDT':
+                    # Potentially fetch cost for other bridgecoins if necessary,
+                    # for now, stick to 1.0 or use bridgecoin_price from TradeRequest if available
+                    bridge_coin_deposit_cost = trade_signal.bridgecoin_price
+
+                coin = Coin(
+                    symbol=trade_signal.bridgecoin_name,
+                    number=trade_signal.price * trade_signal.number,
+                    cost=bridge_coin_deposit_cost
+                )
                 try:
                     self.deposit(coin)
                     return Response(status=ActionStatus.success)
